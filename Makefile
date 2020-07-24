@@ -7,6 +7,8 @@ LDFLAGS := -nostdlibs -T linker.ld
 
 KERNEL := kernel.sys
 
+OBJS :+ \
+	kernel.o
 
 all: INITRD
 
