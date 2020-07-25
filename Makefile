@@ -29,13 +29,17 @@ OBJS := \
 
 all: $(KERNEL)
 
-%.o: ../src/%.c
-	@$(CC) $(CFLAGS) -c $< -o $@
+$(BINDIR):
+	-@mkdir -p $(BINDIR)
+
+%.o: ../src/%.c $(BINDIR)
+	$(CC) $(CFLAGS) -c $< -o $@
 
 $(KERNEL): $(OBJS)
 	$(LD) -r -b binary -o $(BINDIR)/font.o font.psf
 	$(LD) $(LDFLAGS) $(OBJS) $(BINDIR)/font.o -o $(KERNEL)
-	
+	@echo Compilation complete
+
 INITRD: $(KERNEL)
 	@tar -cvf INITRD $(KERNEL)
 	@echo Created bootbootinitrd
@@ -44,28 +48,19 @@ clean:
 	-rm *.o bin/*.o src/*.o kernel.sys INITRD fat.img cdimage.iso
 	
 install: INITRD
-	@echo Installation to img file not implemented yet 
+	@echo Creating Evan OS disk image
+	@dd if=/dev/zero of=fat.img bs=1k count=1440
+	@mformat -i fat.img -f 1440 ::
+	@mmd -i fat.img ::/EFI
+	@mmd -i fat.img ::/EFI/BOOT
+	@mmd -i fat.img ::/BOOTBOOT
+	@mcopy -i fat.img INITRD ::/BOOTBOOT
+	@mcopy -i fat.img CONFIG ::/BOOTBOOT
+	@mcopy -i fat.img BOOTX64.EFI ::/EFI/BOOT
 
-	dd if=/dev/zero of=fat.img bs=1k count=1440
-	mformat -i fat.img -f 1440 ::
-	mmd -i fat.img ::/EFI
-	mmd -i fat.img ::/EFI/BOOT
-	mmd -i fat.img ::/BOOTBOOT
-	mcopy -i fat.img INITRD ::/BOOTBOOT
-	mcopy -i fat.img CONFIG ::/BOOTBOOT
-	mcopy -i fat.img BOOTX64.EFI ::/EFI/BOOT
+	-@mkdir -p iso
+	@cp fat.img iso
+	@xorriso -as mkisofs -R -f -e fat.img -no-emul-boot -o cdimage.iso iso
 
-	-mkdir iso
-	cp fat.img iso
-	xorriso -as mkisofs -R -f -e fat.img -no-emul-boot -o cdimage.iso iso
-
-	@echo Done
-
-loop:
-	@echo Setting up loop devices for the image file
-	sudo modprobe loop
-	sudo losetup -o 1048576 --sizelimit 53476864 /dev/loop1 uefi.img
-	sudo losetup -o 53476864 --sizelimit 104840192 /dev/loop2 uefi.img
-	
 emu:
 	qemu-system-x86_64 $(EMUFLAGS)
