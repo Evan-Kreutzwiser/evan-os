@@ -3,9 +3,9 @@
 # Custom rules
 *.sys
 *.efi
-include/bootboot.h
-.img
-.txt
+*.img
+*.iso
+*.txt
 INITRD
 
 # Prerequisites
