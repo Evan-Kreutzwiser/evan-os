@@ -1,9 +1,9 @@
 
 # Must be set to x86_64-elf tools
-CC := x86_64-elf-gcc
-LD := x86_64-elf-ld
+CC := gcc
+LD := ld
 
-CFLAGS := -Wall -Wextra -m64 -fpic -ffreestanding -fno-stack-protector -nostdlib -mno-red-zone -Iinclude
+CFLAGS := -Wall -Wextra -m64 -fpic -ffreestanding -fno-stack-protector -nostdlib -mno-red-zone -Iinclude -O0
 LDFLAGS := -nostdlib -nostartfiles -T linker.ld
 
 EMUFLAGS := -L /usr/share/edk2-ovmf/x64 -bios OVMF.fd \
@@ -16,36 +16,37 @@ EMUFLAGS := -L /usr/share/edk2-ovmf/x64 -bios OVMF.fd \
 
 KERNEL := kernel.sys
 
-SRCDIR = src
-BINDIR = bin
+SRCDIR := ./src 
+BINDIR := ./bin
 
-SOURCES = $(shell find $(SRCDIR) -name "*.c")
-OBJECTS  := $(SOURCES:$(SRCDIR)/%.c=$(BINDIR)/%.o)
+OBJS := \
+	bin/kernel.o \
+	bin/asm.o \
+	bin/interrupt.o \
+	bin/tty.o \
+	bin/serial.o \
+	
 
 all: $(KERNEL) INITRD bootboot.efi
 
-$(BINDIR)/%.o: $(SRCDIR)/%.c
+%.o: ../src/%.c
 	@$(CC) $(CFLAGS) -c $< -o $@
 	@echo "Compiled "$<" successfully!"
 
-$(KERNEL): $(OBJECTS)
-	$(LD) -r -b binary -o bin/font.o font.psf
-	$(LD) $(LDFLAGS) $(OBJECTS) bin/font.o -o $(KERNEL)
+$(KERNEL): $(OBJS)
+	$(LD) -r -b binary -o $(BINDIR)/font.o font.psf
+	$(LD) $(LDFLAGS) $(OBJS) $(BINDIR)/font.o -o $(KERNEL)
 	readelf -hls $(KERNEL) >kernel-info.txt
 
 INITRD: $(KERNEL)
 	@tar -cvf INITRD $(KERNEL)
 	@echo Created bootbootinitrd
 	
-bootboot.efi:
-	(cd bootboot/x86_64-efi && make)
-	cp bootboot/dist/bootboot.efi bootboot.efi
-
 clean:
 	-rm INITRD
 	-rm *.o bin/*.o src/*.o kernel.sys
 	
-install: INITRD bootboot.efi
+install: INITRD
 	@echo Installation to img file not implemented yet 
 	@echo Mounting and installing OS to disk image
 	sudo mount /dev/loop1 imgmnt
