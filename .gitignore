@@ -2,6 +2,10 @@
 
 # Custom rules
 *.sys
+*.efi
+include/bootboot.h
+.img
+.txt
 INITRD
 
 # Prerequisites
