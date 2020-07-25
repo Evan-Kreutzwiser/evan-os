@@ -1,0 +1,3 @@
+[submodule "bootboot"]
+	path = bootboot
+	url = https://github.com/SilverOnemi/bootboot.git
