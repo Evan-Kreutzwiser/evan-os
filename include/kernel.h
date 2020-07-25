@@ -1,13 +1,15 @@
-/*
- * evan-os/include/kernel.h
- *
- * Definitions the kernel's entry point and miscellaneous functions 
- */
 
 #ifndef KERNEL_H
 #define KERNEL_H
 
-// Entry point
-void start(void);
+#include <stdint.h>
 
-#endif // KERNEL_H
+
+// Kernel entry point
+void _start(void);
+
+void double_fault(void);
+void gp_fault(void);
+void div_0_fault(void);
+
+#endif
