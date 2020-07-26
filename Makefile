@@ -43,11 +43,11 @@ $(KERNEL): $(OBJS)
 	@echo Compilation complete
 
 INITRD:
-	@tar -cvf INITRD $(KERNEL)
+	@tar -cvf INITRD linker.ld $(KERNEL) font.psf
 	@echo Created bootbootinitrd
 	
 clean:
-	-rm *.o bin/*.o src/*.o kernel.sys INITRD fat.img cdimage.iso
+	-rm -f *.o bin/*.o src/*.o kernel.sys INITRD *.img cdimage.iso
 	
 install: INITRD
 	@echo Creating Evan OS disk image

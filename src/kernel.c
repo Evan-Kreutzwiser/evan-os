@@ -22,6 +22,16 @@ extern unsigned char *environment;  // Configuration writen in key=value pairs
 extern volatile uint8_t fb;         // Linear framebuffer mapped here
 extern volatile unsigned char _binary_font_psf_start; // Font file
 
+typedef struct tar_header_t {
+    char filename[100];
+    char mode[8];
+    char uid[8];
+    char gid[8];
+    char size[12]; // In octal
+    char mtime[12];
+    char chksum[8];
+    char typeflag[1];
+} tar_header_t;
 
 // Entry point
 // NOTE: This code runs on all cores in parallel 
@@ -33,6 +43,9 @@ void _start(void) {
 
     // Make a pointer the the screen's framebuffer
     volatile uint32_t* framebuffer = (uint32_t*)&fb;
+
+    // Get the pointer to the ramdisk
+    volatile void * initrd = (void *)bootboot.initrd_ptr;
 
     // Draw a rainbow box
     for (uint32_t xpos = 0; xpos < 256; xpos++) {
@@ -47,7 +60,6 @@ void _start(void) {
             framebuffer[(scanline/4)*(ypos+(screen_height/2) - 128) + (xpos+(screen_width/2) - 128 - 256)] = ((xpos) << 16)+((255-ypos) << 8) + (128-xpos/2)+ (ypos/2);
         }
     }
-
     // Draw a rainbow box
     for (uint32_t xpos = 0; xpos < 256; xpos++) {
         for (uint32_t ypos = 0; ypos < 256; ypos++) {
@@ -82,9 +94,16 @@ void _start(void) {
     // Set up the div by 0 fault handler
     interrupt_set_gate(0x0, (uint64_t)&div_0_fault, INTERRUPT_EXCEPTION_TYPE | INTERRUPT_INTERRUPT_GATE);
     
+    // Load drivers from disk as needed
+    tty_print_string("Loading drivers\n");
 
-    
-    // Loop to prevent the kernel from returning (to nothing)
+    tar_header_t* file = (tar_header_t*)initrd;
+
+    tty_print_string("Found file [");
+    tty_print_string((char*)&file->filename[0]);
+    tty_print_string("]\n");
+
+    // Loop to prevent the kernel from returning to nothing and crashing
     while(1);
 }
 
