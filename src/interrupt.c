@@ -1,3 +1,9 @@
+/* 
+ * evan-os/src/interrupt.c
+ * 
+ * Contains functions for managing cpu interrupts
+ * 
+ */
 
 #include <interrupt.h>
 
@@ -20,7 +26,7 @@ typedef struct idt_ptr_t {
 
 
 // The Interrupt Descriptor Table, made of 256 decsriptors
-idt_entry_t idt[256];
+volatile idt_entry_t idt[256];
 
 void interrupt_set_gate(uint8_t index, uint64_t address, uint8_t type_attributes) {
 
@@ -31,10 +37,18 @@ void interrupt_set_gate(uint8_t index, uint64_t address, uint8_t type_attributes
 	idt[index].type_attr = type_attributes;
 }
 
+void interrupt_mask(uint8_t interrupt) {
+	// TODO: Implement this
+}
+
+void interrupt_unmask(uint8_t interrupt) {
+	// TODO: Implement this
+}
+
 void interrupt_load_table(void) {
 
 	// Create the pointer read by the lgdt instructtion
-	idt_ptr_t idt_pointer = {
+	volatile idt_ptr_t idt_pointer = {
 		.limit = (sizeof(idt_entry_t) * 256) - 1, // 256 entries
 		.base = (idt_entry_t*)&idt[0]							  // Address of the table
 	};

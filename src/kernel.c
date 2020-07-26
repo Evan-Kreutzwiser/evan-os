@@ -6,6 +6,7 @@
 #include <kernel.h>
 
 // OS headers
+#include <module.h> // Driver system
 #include <asm.h> // Assembly single-instruction functions
 #include <interrupt.h> // Hardware interrupts and exceptions
 #include <gdt.h>
@@ -18,7 +19,7 @@
 // Virtual addresses from linker script
 extern BOOTBOOT bootboot;           // See ../dist/bootboot.h
 extern unsigned char *environment;  // Configuration writen in key=value pairs
-extern uint8_t fb;                  // Linear framebuffer mapped here
+extern volatile uint8_t fb;         // Linear framebuffer mapped here
 extern volatile unsigned char _binary_font_psf_start; // Font file
 
 
@@ -31,7 +32,7 @@ void _start(void) {
     uint32_t scanline = bootboot.fb_scanline;
 
     // Make a pointer the the screen's framebuffer
-    uint32_t* framebuffer = (uint32_t*)&fb;
+    volatile uint32_t* framebuffer = (uint32_t*)&fb;
 
     // Draw a rainbow box
     for (uint32_t xpos = 0; xpos < 256; xpos++) {
@@ -82,9 +83,7 @@ void _start(void) {
     interrupt_set_gate(0x0, (uint64_t)&div_0_fault, INTERRUPT_EXCEPTION_TYPE | INTERRUPT_INTERRUPT_GATE);
     
 
-
-    volatile int r = 3 / 0;
-
+    
     // Loop to prevent the kernel from returning (to nothing)
     while(1);
 }

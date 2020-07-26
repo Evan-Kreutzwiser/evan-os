@@ -3,7 +3,8 @@
 CC := gcc
 LD := ld
 
-CFLAGS := -Wall -Wextra -m64 -fpic -ffreestanding -fno-stack-protector -nostdlib -mno-red-zone -Iinclude -O0
+CFLAGS := -Wall -Wextra \
+	-m64 -fpic -ffreestanding -fno-stack-protector -nostdlib -mno-red-zone -Iinclude -O0
 LDFLAGS := -nostdlib -nostartfiles -T linker.ld
 
 EMUFLAGS := -L /usr/share/edk2-ovmf/x64 -bios OVMF.fd \
@@ -12,6 +13,7 @@ EMUFLAGS := -L /usr/share/edk2-ovmf/x64 -bios OVMF.fd \
  -device ahci,id=ahci \
  -device ide-hd,drive=disk,bus=ahci.0 \
  -serial stdio \
+ -smp 2 \
 
 
 KERNEL := kernel.sys
@@ -32,7 +34,7 @@ all: $(KERNEL)
 $(BINDIR):
 	-@mkdir -p $(BINDIR)
 
-%.o: ../src/%.c $(BINDIR)
+bin/%.o: src/%.c $(BINDIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(KERNEL): $(OBJS)
@@ -40,7 +42,7 @@ $(KERNEL): $(OBJS)
 	$(LD) $(LDFLAGS) $(OBJS) $(BINDIR)/font.o -o $(KERNEL)
 	@echo Compilation complete
 
-INITRD: $(KERNEL)
+INITRD:
 	@tar -cvf INITRD $(KERNEL)
 	@echo Created bootbootinitrd
 	

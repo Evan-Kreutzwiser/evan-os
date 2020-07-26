@@ -24,7 +24,7 @@ typedef struct {
 } __attribute__((packed)) psf2_t;
 
 // Font
-psf2_t *font = (psf2_t *)&_binary_font_psf_start;
+volatile psf2_t *font = (psf2_t *)&_binary_font_psf_start;
 
 uint32_t char_x, char_y;
 uint32_t fg_color = 0x00ffffff, bg_color = 0x00000000;
@@ -60,14 +60,14 @@ uint32_t tty_get_bg_color(void) {
 void tty_put_char_at(char c, uint32_t xpos, uint32_t ypos) {
 
 	// Make a pointer the the screen's framebuffer
-	uint8_t* pixeladdress;
+	volatile uint8_t* pixeladdress;
 	// Scanline width
 	uint32_t scanline = bootboot.fb_scanline;
 	// Bit mask
 	uint8_t mask;
 
 	// Make a pointer to the data for the glyph to print
-	uint8_t* glyph = (uint8_t *)&_binary_font_psf_start + font->headersize + c * font->bytesperglyph;
+	volatile uint8_t* glyph = (uint8_t *)&_binary_font_psf_start + font->headersize + c * font->bytesperglyph;
 
 	for (uint32_t y = 0; y < font->height; y++) {
 		mask = 0x80; // Set which bit to print
@@ -130,11 +130,11 @@ void puts_at_pos(char *s, uint32_t xpos, uint32_t ypos) {
 
 void puts_at_pos_transparent(char *s, uint32_t xpos, uint32_t ypos) {
 	// Make a pointer the the screen's framebuffer
-	uint8_t *pixeladdress;
+	volatile uint8_t *pixeladdress;
 	// Width of one line of pixels on the screen
 	uint32_t scanline = bootboot.fb_scanline;
 	// Pointer the glyph data
-	uint8_t *glyph;
+	volatile uint8_t *glyph;
 	uint8_t mask;
 	uint32_t c = 0;			  // The index of the chracter in the string
 	uint32_t fg = 0x00ffffff; // Colors
