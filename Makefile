@@ -21,20 +21,27 @@ KERNEL := kernel.sys
 SRCDIR := ./src 
 BINDIR := ./bin
 
-OBJS := \
-	bin/kernel.o \
-	bin/asm.o \
-	bin/interrupt.o \
-	bin/tty.o \
-	bin/serial.o \
-	
+# List the basenames of all source files to compile here
+FILES := \
+	kernel \
+	asm \
+	interrupt \
+	 \
+	serial \
+	tty \
+
+SRCS := $(addprefix $(SRCDIR)/,$(addsuffix .c,$(FILES)))
+OBJS := $(addprefix $(BINDIR)/,$(addsuffix .o,$(FILES)))
+
+.PHONY: all install clean emu
+.SUFFIXES: .o .c .img .iso .EFI
 
 all: $(KERNEL)
 
 $(BINDIR):
 	-@mkdir -p $(BINDIR)
 
-bin/%.o: src/%.c $(BINDIR)
+$(OBJS): bin/%.o: src/%.c $(BINDIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(KERNEL): $(OBJS)

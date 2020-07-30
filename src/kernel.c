@@ -31,7 +31,7 @@ typedef struct tar_header_t {
     char mtime[12];
     char chksum[8];
     char typeflag[1];
-} tar_header_t;
+} __attribute__((packed)) tar_header_t;
 
 // Entry point
 // NOTE: This code runs on all cores in parallel 
@@ -101,7 +101,13 @@ void _start(void) {
 
     tty_print_string("Found file [");
     tty_print_string((char*)&file->filename[0]);
+
+    
+
     tty_print_string("]\n");
+
+    MMapEnt* mmap_ent = &bootboot.mmap; 
+    mmap_ent++;
 
     // Loop to prevent the kernel from returning to nothing and crashing
     while(1);
@@ -109,7 +115,7 @@ void _start(void) {
 
 void double_fault(void) {
 
-    tty_print_string("CRITICAL ERROR. HALTING KERNEL.");
+    tty_print_string("UNKOWN CRITICAL ERROR. HALTING KERNEL.");
 
     // Stop the computer
     while (1) {
@@ -120,7 +126,7 @@ void double_fault(void) {
 
 void gp_fault(void) {
 
-    tty_print_string("CRITICAL GP ERROR. HALTING KERNEL.");
+    tty_print_string("CRITICAL PROTECTION ERROR. HALTING KERNEL.");
 
     // Stop the computer
     while (1) {
@@ -131,7 +137,7 @@ void gp_fault(void) {
 
 void div_0_fault(void) {
 
-    tty_print_string("CRITICAL DIV BY 0 ERROR. HALTING KERNEL.");
+    tty_print_string("DIV BY 0 ERROR. HALTING KERNEL.");
 
     // Stop the computer
     while (1) {
@@ -139,3 +145,5 @@ void div_0_fault(void) {
         hlt();
     }
 }
+
+
