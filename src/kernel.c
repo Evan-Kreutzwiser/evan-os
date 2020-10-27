@@ -102,17 +102,17 @@ void _start(void) {
     tty_print_string("Found file [");
     tty_print_string((char*)&file->filename[0]);
 
-    
-
     tty_print_string("]\n");
 
     MMapEnt* mmap_ent = &bootboot.mmap; 
     mmap_ent++;
 
     // Loop to prevent the kernel from returning to nothing and crashing
+    // The OS should run tasks instead of this
     while(1);
 }
 
+__attribute__((interupt))
 void double_fault(void) {
 
     tty_print_string("UNKOWN CRITICAL ERROR. HALTING KERNEL.");
@@ -124,6 +124,7 @@ void double_fault(void) {
     }
 }
 
+__attribute__((interupt))
 void gp_fault(void) {
 
     tty_print_string("CRITICAL PROTECTION ERROR. HALTING KERNEL.");
@@ -135,6 +136,7 @@ void gp_fault(void) {
     }
 }
 
+__attribute__((interupt))
 void div_0_fault(void) {
 
     tty_print_string("DIV BY 0 ERROR. HALTING KERNEL.");

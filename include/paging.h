@@ -1,5 +1,5 @@
 /*
- * evan-s/include/paging.h 
+ * evan-os/include/paging.h 
  * 
  * Delcares functions for manipulating memory paging structures
  * 

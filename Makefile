@@ -26,9 +26,9 @@ FILES := \
 	kernel \
 	asm \
 	interrupt \
-	 \
 	serial \
 	tty \
+	vfs \
 
 SRCS := $(addprefix $(SRCDIR)/,$(addsuffix .c,$(FILES)))
 OBJS := $(addprefix $(BINDIR)/,$(addsuffix .o,$(FILES)))
