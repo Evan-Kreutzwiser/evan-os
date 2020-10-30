@@ -112,8 +112,7 @@ void _start(void) {
     while(1);
 }
 
-__attribute__((interupt))
-void double_fault(void) {
+void double_fault(interrupt_frame *frame) {
 
     tty_print_string("UNKOWN CRITICAL ERROR. HALTING KERNEL.");
 
@@ -124,8 +123,7 @@ void double_fault(void) {
     }
 }
 
-__attribute__((interupt))
-void gp_fault(void) {
+void gp_fault(interrupt_frame *frame) {
 
     tty_print_string("CRITICAL PROTECTION ERROR. HALTING KERNEL.");
 
