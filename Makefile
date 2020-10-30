@@ -4,7 +4,7 @@ CC := gcc
 LD := ld
 
 CFLAGS := -Wall -Wextra \
-	-m64 -fpic -ffreestanding -fno-stack-protector -nostdlib -mno-red-zone -Iinclude -O0
+	-m64 -fpic -ffreestanding -fno-stack-protector -nostdlib -mno-red-zone -Iinclude -O0 -mno-sse -mno-mmx -mno-80387
 LDFLAGS := -nostdlib -nostartfiles -T linker.ld
 
 EMUFLAGS := -L /usr/share/edk2-ovmf/x64 -bios OVMF.fd \

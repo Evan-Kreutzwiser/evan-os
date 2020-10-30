@@ -8,8 +8,8 @@
 // Kernel entry point
 void _start(void);
 
-void double_fault(interrupt_frame *frame); // TODO: Add error code to paramters
-void gp_fault(interrupt_frame *frame);
-void div_0_fault(void);
+void double_fault(struct interrupt_frame *frame, uint64_t error_code); 
+void gp_fault(struct interrupt_frame *frame, uint64_t error_code);
+void div_0_fault(struct interrupt_frame *frame);
 
 #endif

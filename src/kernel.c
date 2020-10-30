@@ -104,6 +104,9 @@ void _start(void) {
 
     tty_print_string("]\n");
 
+    tty_print_string("Testing exception handlers\n");
+
+    volatile int i = 0 / 0;
     MMapEnt* mmap_ent = &bootboot.mmap; 
     mmap_ent++;
 
@@ -112,7 +115,8 @@ void _start(void) {
     while(1);
 }
 
-void double_fault(interrupt_frame *frame) {
+__attribute__ ((interrupt))
+void double_fault(struct interrupt_frame *frame, uint64_t error_code) {
 
     tty_print_string("UNKOWN CRITICAL ERROR. HALTING KERNEL.");
 
@@ -123,7 +127,8 @@ void double_fault(interrupt_frame *frame) {
     }
 }
 
-void gp_fault(interrupt_frame *frame) {
+__attribute__ ((interrupt))
+void gp_fault(struct interrupt_frame *frame, uint64_t error_code) {
 
     tty_print_string("CRITICAL PROTECTION ERROR. HALTING KERNEL.");
 
@@ -134,8 +139,8 @@ void gp_fault(interrupt_frame *frame) {
     }
 }
 
-__attribute__((interupt))
-void div_0_fault(void) {
+__attribute__ ((interrupt))
+void div_0_fault(struct interrupt_frame *frame) {
 
     tty_print_string("DIV BY 0 ERROR. HALTING KERNEL.");
 

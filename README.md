@@ -5,7 +5,7 @@ Roadmap and features are listed on the [trello page](https://trello.com/b/62egCB
 
 ## Building And Testing
 
-Building Evan OS requires an x86_64-elf compiler. On x86_64 linux computers, you can use the regular gcc compiler, and Evan-OS is only designed for x86_64 systems. 
+Building Evan OS requires an x86_64-elf-gcc compiler. On x86_64 linux computers, the built in gcc compiler can be used. Evan-OS is only designed for x86_64 systems. 
 
 Evan OS boots using the bootboot protocol, but due to build problems the files are provided precompiled. Testing with qemu requires the OVMF EFI.
 

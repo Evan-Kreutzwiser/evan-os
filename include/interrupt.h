@@ -17,7 +17,16 @@
 #define INTERRUPT_TRAP_GATE 		0xf // 64 Bit trap gate (return to next instruction)
 // OR a gate type and type value together to make the type_attributes parameter for interrupt setting
 
-typedef struct interrupt_frame {uint8_t placeholder; } interrupt_frame;
+// The structure of information saved when exceptions or interrupts are tiggered
+// Holds information used to restore the state of the cpu from before the interrupt
+// This also allows the use of gcc's interrupt attribute
+struct interrupt_frame {
+    uint64_t ip;
+    uint64_t cs;
+    uint64_t flags;
+    uint64_t sp;
+    uint64_t ss;
+};
 
 void interrupt_set_gate(uint8_t index, uint64_t address, uint8_t type_attributes);
 
