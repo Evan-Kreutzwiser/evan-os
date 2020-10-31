@@ -49,7 +49,7 @@ $(KERNEL): $(OBJS)
 	$(LD) $(LDFLAGS) $(OBJS) $(BINDIR)/font.o -o $(KERNEL)
 	@echo Compilation complete
 
-INITRD:
+INITRD: $(KERNEL)
 	@tar -cvf INITRD linker.ld $(KERNEL) font.psf
 	@echo Created bootbootinitrd
 	
