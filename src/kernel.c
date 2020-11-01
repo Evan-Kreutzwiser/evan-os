@@ -118,7 +118,7 @@ void _start(void) {
 __attribute__ ((interrupt))
 void double_fault(struct interrupt_frame *frame, uint64_t error_code) {
 
-    tty_print_string("UNKOWN CRITICAL ERROR. HALTING KERNEL.");
+    tty_print_string("UNKOWN CRITICAL ERROR. HALTING KERNEL.\n");
 
     // Stop the computer
     while (1) {

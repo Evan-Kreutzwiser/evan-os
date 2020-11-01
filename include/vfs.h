@@ -12,12 +12,13 @@
 
 // Error types
 #define FS_ERROR_SUCCESS			 0x0 // No error
-#define FS_FAILURE					 0x1 // Generic error
+#define FS_ERROR_FAILURE			 0x1 // Generic error
 #define FS_ERROR_END_OF_FILE		 0x2 // The end of the file was reached
 #define FS_ERROR_NULL_BUFFER		 0x3 // Null pointer for buffer
 #define FS_ERROR_NULL_FILE  		 0x4 // Null pointer for file
 #define FS_ERROR_INVALID_PERMISSIONS 0x5 // The program does not have the right permissions
 #define FS_ERROR_DOES_NOT_EXIST      0x6 // The target does not exist
+#define FS_ERROR_NODE_TYPE 			 0x7 // The target node is not the correct type
 
 // Inode types
 #define FS_FILE        0b00000000 // Regular files
@@ -33,58 +34,52 @@ typedef struct superblock_t superblock_t;
 typedef struct inode_t inode_t;
 typedef struct dentry_t dentry_t;
 
-typedef uint32_t (*read_type_t)(dentry_t* file, uint32_t offset, uint32_t size, uint8_t *buffer);
-typedef uint32_t (*write_type_t)(dentry_t* file, uint32_t offset, uint32_t size, uint8_t *buffer);
-typedef void (*open_type_t)(dentry_t* file, uint8_t read, uint8_t write);
-typedef void (*close_type_t)(dentry_t* file);
+//typedef uint32_t (*read_type_t)(dentry_t* file, uint32_t offset, uint32_t size, uint8_t *buffer);
+//typedef uint32_t (*write_type_t)(dentry_t* file, uint32_t offset, uint32_t size, uint8_t *buffer);
+//typedef void (*open_type_t)(dentry_t* file, uint8_t read, uint8_t write);
+//typedef void (*close_type_t)(dentry_t* file);
 
-uint32_t read_fs(dentry_t* file, uint32_t offset, uint32_t size, uint8_t *buffer);
-uint32_t write_fs(dentry_t* file, uint32_t offset, uint32_t size, uint8_t *buffer);
-void open_fs(dentry_t* file, uint8_t read, uint8_t write);
-void close_fs(dentry_t* file);
+//uint32_t read_fs(dentry_t* file, uint32_t offset, uint32_t size, uint8_t *buffer);
+//uint32_t write_fs(dentry_t* file, uint32_t offset, uint32_t size, uint8_t *buffer);
+//void open_fs(dentry_t* file, uint8_t read, uint8_t write);
+//void close_fs(dentry_t* file);
 
 
 
 // The type used to reference the size of a file
 typedef	uint64_t file_size_t;
 
-// Lists filesystem operations that affect he whole filesystem (not only certain files)
-typedef struct superblock_operations_t {
+// Lists manipulation functions used by filesystem drivers
+typedef struct operations_t {
 
-	uint64_t (*read) (inode_t*);
+	uint64_t (*read_inode)  (inode_t *inode, uint32_t offset, uint32_t size, uint8_t *buffer);
+	uint64_t (*write_inode) (inode_t*inode, uint32_t offset, uint32_t size, uint8_t *buffer);
 
-	uint64_t (*unmount) (superblock_t*);
-	uint64_t (*sync_fs) (superblock_t*);
-	uint64_t (*write_inode) (inode_t*, dentry_t*);
+	uint64_t (*mount)   (char* mount_directory);
+	uint64_t (*unmount) (char* mount_directory);
 
-} superblock_operations_t;
+	// For making sure files are writen to disk
+	uint64_t (*write_fs)    (superblock_t*);
+	uint64_t (*write_inode) (inode_t *inode);
 
+	// Creating new fs entries
+	uint64_t (*make_inode)  (inode_t *inode);
+	uint64_t (*make_dentry) (dentry_t *dentry);
 
-// Lists file manipulation functions used by filesystem drivers
-typedef struct file_operations_t {
-	
-} file_operations_t;
+	// Deleting fs entries
+	uint64_t (*remove_inode)  (inode_t *inode);
+	uint64_t (*remove_dentry) (dentry_t *dentry);
 
-// Lists inode manipulation functions used by filesystem drivers
-typedef struct inode_operations_t {
+	uint64_t (*find_name) (char* path);
 
-	uint64_t (*create) (inode_t*, dentry_t*);
-	uint64_t (*mkdir) (inode_t*, dentry_t*);
-	uint64_t (*rmdir) (inode_t*, dentry_t*);
-	uint64_t (*symlink) (inode_t*, dentry_t*);
-
-} inode_operations_t;
-
-
+} operations_t;
 
 // Filesystem superblocks (descriptors)
 struct superblock_t {
 
 	char fs_type[8]; // 8 letter filesystem type name
 
-	superblock_operations_t super_ops; // FS
-	inode_operations_t		inode_ops; // Inode
-	file_operations_t		file_ops;  // Dentry
+	operations_t ops;
 };
 
 // File nodes

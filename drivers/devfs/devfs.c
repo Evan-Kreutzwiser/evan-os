@@ -10,20 +10,24 @@
 #include <vfs.h>
 
 
-inode_operations_t __attribute__((align(64))) inode_operations = {
+operations_t __attribute__((align(64))) operations = {
 
-	.create = super_create,
+	.mount = devfs_mount,
 
 };
 
 
-void super_create(inode_t* inode, dentry_t* dentry) {
+uint64_t devfs_mount(char* mount_directory) {
 
+	// TODO: Find node to mount on with syscall
+	inode_t mount_point;
+
+	// Check if the mount point is a directory
+	if (mount_point.type != FS_DIRECTORY) {
+		return FS_ERROR_NODE_TYPE;
+	}
+
+	// TODO: Use syscall to mount
+
+	return FS_ERROR_SUCCESS;
 }
-
-
-// TODO: Include permissions
-int devfs_mkdir(char* name) {
-
-
-};
