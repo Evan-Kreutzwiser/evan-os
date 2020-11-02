@@ -33,14 +33,14 @@ void syscall_interrupt_handler(struct interrupt_frame *frame) {
 		// If it does, call the syscall
 		return_value = syscall[syscall_id](argument);
 		// Return the return value in rdx
-		asm volatile ("mov %0, %%rbx " :: "=m" (syscall_id) : );
+		asm volatile ("mov %0, %%rbx " :: "m" (syscall_id) : );
 	}
 }
 
 void syscall_init(void) {
 
 	// Register the sysscall interrupt
-	interrupt_set_gate(80, &syscall_interrupt_handler, INTERRUPT_PRESENT | INTERRUPT_INTERRUPT_GATE);
+	interrupt_set_gate(80, (uint64_t)&syscall_interrupt_handler, INTERRUPT_PRESENT | INTERRUPT_RING_3 | INTERRUPT_INTERRUPT_GATE);
 
 	// Add baseline system interrupts to the array
 	//syscall_register();

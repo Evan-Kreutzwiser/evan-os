@@ -13,6 +13,8 @@
 #include <stdbool.h>
 
 #define INTERRUPT_PRESENT			0b10000000
+#define INTERRUPT_RING_0            0b00000000 // Priviledge level 0
+#define INTERRUPT_RING_3            0b01100000 // Priviledge level 3
 #define INTERRUPT_INTERRUPT_GATE 	0xe // 64 Bit interrupt gate
 #define INTERRUPT_TRAP_GATE 		0xf // 64 Bit trap gate (return to next instruction)
 // OR a gate type and type value together to make the type_attributes parameter for interrupt setting
