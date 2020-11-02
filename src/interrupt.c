@@ -42,6 +42,12 @@ volatile idt_entry_t idt[256];
 
 void interrupt_set_gate(uint8_t index, uint64_t address, uint8_t type_attributes) {
 
+	// Check that the interrupt handler is not null
+	if (address == 0) {
+		// Dont set up the invalid interrupt
+		return;
+	}
+
 	idt[index].selector = 0x38;
 	idt[index].offset_low = (uint16_t)(address & 0xffff);
 	idt[index].offset_mid = (uint16_t)((address & 0xffff0000) >> 16);

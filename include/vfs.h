@@ -59,8 +59,8 @@ typedef struct operations_t {
 	uint64_t (*unmount) (char* mount_directory);
 
 	// For making sure files are writen to disk
-	uint64_t (*write_fs)    (superblock_t*);
-	uint64_t (*write_inode) (inode_t *inode);
+	uint64_t (*write_fs_disk)    (superblock_t*);
+	uint64_t (*write_inode_disk) (inode_t *inode);
 
 	// Creating new fs entries
 	uint64_t (*make_inode)  (inode_t *inode);

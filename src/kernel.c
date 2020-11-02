@@ -88,11 +88,11 @@ void _start(void) {
     tty_print_string("Adding exception handlers\n");
 
     // Set up the double fault handler (The most important one)
-    interrupt_set_gate(0x8, (uint64_t)&double_fault, INTERRUPT_EXCEPTION_TYPE | INTERRUPT_INTERRUPT_GATE);
+    interrupt_set_gate(0x8, (uint64_t)&double_fault, INTERRUPT_PRESENT | INTERRUPT_INTERRUPT_GATE);
     // Set up the general protection fault handler
-    interrupt_set_gate(0xd, (uint64_t)&gp_fault, INTERRUPT_EXCEPTION_TYPE | INTERRUPT_INTERRUPT_GATE);
+    interrupt_set_gate(0xd, (uint64_t)&gp_fault, INTERRUPT_PRESENT | INTERRUPT_INTERRUPT_GATE);
     // Set up the div by 0 fault handler
-    interrupt_set_gate(0x0, (uint64_t)&div_0_fault, INTERRUPT_EXCEPTION_TYPE | INTERRUPT_INTERRUPT_GATE);
+    interrupt_set_gate(0x0, (uint64_t)&div_0_fault, INTERRUPT_PRESENT | INTERRUPT_INTERRUPT_GATE);
     
     // Load drivers from disk as needed
     tty_print_string("Loading drivers\n");

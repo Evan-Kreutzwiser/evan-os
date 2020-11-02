@@ -26,6 +26,7 @@ FILES := \
 	kernel \
 	asm \
 	interrupt \
+	syscall \
 	serial \
 	tty \
 	vfs \

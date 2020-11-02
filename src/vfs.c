@@ -22,16 +22,16 @@ uint32_t read_fs(dentry_t* file, uint32_t offset, uint32_t size, uint8_t *buffer
 	// Find the inode of the passed dentry
 	inode_t* inode = (file->inode_ptr);
 
-	// If there is a read function
-	//if (inode->read != 0x0) {
-		// Read the file with the correct read function and pass on the return value
-		//return inode->read(file, offset, size, buffer);
-	//}
-	// If there is no function
-	//else {
-		// Indicate failure
-		return 0x1;
-	//}
+	// If he buffer pointer
+	if (buffer == 0)    { return FS_ERROR_NULL_BUFFER; }
+	else if (size == 0) { return FS_ERROR_FAILURE; }
+
+	// Use the filesystem's functions to read the file into the buffer
+
+	// TODO: implement file reading
+
+	// Return the success
+	return FS_ERROR_SUCCESS;
 }
 
 uint32_t mount_root(char* file) {

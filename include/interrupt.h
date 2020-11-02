@@ -12,7 +12,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define INTERRUPT_EXCEPTION_TYPE	0b10000000 // 0b1000
+#define INTERRUPT_PRESENT			0b10000000
 #define INTERRUPT_INTERRUPT_GATE 	0xe // 64 Bit interrupt gate
 #define INTERRUPT_TRAP_GATE 		0xf // 64 Bit trap gate (return to next instruction)
 // OR a gate type and type value together to make the type_attributes parameter for interrupt setting
