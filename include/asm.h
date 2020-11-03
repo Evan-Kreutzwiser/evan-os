@@ -10,12 +10,19 @@
 
 #include <stdint.h>
 
-// Interupts
+// Interrupts
 
 void sti(void); // Enable interrupts
 void cli(void); // Disable interrupts
 
 void hlt(void); // Stop the computer
+
+// Model Specific Register manupulation
+
+void     wrmsr(uint32_t msr_id, uint32_t low, uint32_t high);
+uint64_t rdmsr(uint32_t msr_id);
+uint32_t rdmsr_low(uint32_t msr_id);
+uint32_t rdmsr_high(uint32_t msr_id);
 
 // Output to io ports
 
