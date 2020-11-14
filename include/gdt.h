@@ -13,7 +13,7 @@
 #include <stdint.h>
 
 void gdt_set_segment(uint8_t index, uint64_t offset, uint64_t limit, uint8_t access, uint8_t flags);
-
-void gdt_load(void);
+void gdt_set_tss(uint64_t index);
+void gdt_init(void);
 
 #endif
