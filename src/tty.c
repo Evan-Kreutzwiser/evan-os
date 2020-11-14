@@ -86,7 +86,24 @@ void tty_put_char_at(char c, uint32_t xpos, uint32_t ypos) {
 	}
 }
 
-void tty_print_char(char c);
+void tty_print_char(char c) {
+
+	switch (c) {
+		case '\n':
+			char_x = 0;
+			char_y++;
+			break;
+		default:
+			tty_put_char_at(c, (char_x*font->width), char_y*font->height);
+			char_x++;
+			break;
+		}
+		
+		if (char_x >= max_x) {
+			char_x = 0;
+			char_y++;
+		}
+}
 
 void tty_print_string(char *s) {
 	
@@ -95,23 +112,9 @@ void tty_print_string(char *s) {
 
 	while (s[c] != 0x0) {
 		// Print the character
-		
-		switch (s[c]) {
-		case '\n':
-			char_x = 0;
-			char_y++;
-			break;
-		default:
-			tty_put_char_at(s[c], (char_x*font->width), char_y*font->height);
-			char_x++;
-			break;
-		}
-		c++; // Select the next character
-		
-		if (char_x >= max_x) {
-			char_x = 0;
-			char_y++;
-		}
+		tty_print_char(s[c]);
+		// Select the next character
+		c++;
 	}
 }
 
