@@ -48,7 +48,7 @@ void interrupt_set_gate(uint8_t index, uint64_t address, uint8_t type_attributes
 		return;
 	}
 
-	idt[index].selector = 0x38;
+	idt[index].selector = 0x08;
 	idt[index].offset_low = (uint16_t)(address & 0xffff);
 	idt[index].offset_mid = (uint16_t)((address & 0xffff0000) >> 16);
 	idt[index].offset_high = (uint32_t)((address & 0xffffffff00000000) >> 32);

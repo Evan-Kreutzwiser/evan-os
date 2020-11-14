@@ -66,7 +66,17 @@ void syscall_init(void) {
 	syscall[1] = &syscall_unregister;
 	// TODO: Add interrupt setting syscalls
 	// TODO: Add file system syscalls
+
+	// Set the segments that syscall will set
+	// Set STAR to the segment selectors
+	wrmsr(0xC0000081, 0x8, 0);
 	
+	// Set the LSTAR MSR to the 64 bit syscall entry point
+	wrmsr(0xC0000082, (uint32_t)(syscall_and_return&0xffffffff), (uint32_t)(syscall_and_return >> 32) );
+
+	// Set the syscall bit
+    wrmsr(0xC0000080, 1, 0); /*rdmsr_low(0xC0000080) | 1, rdmsr_high(0xC0000080));
+*/
 }
 
 
@@ -74,7 +84,7 @@ uint64_t syscall_register(uint64_t id, uint64_t (*new_syscall) (uint64_t, uint64
 	__attribute__ ((unused)) uint64_t arg2, __attribute__ ((unused)) uint64_t arg3) {
 
 	// TODO: Permission checking and error codes
-	if (syscall[id] >= 4) {
+	if (id >= 4) {
 		// Set the system call to the passed function pointer
 		tty_print_string("Added a syscall\n");
 		syscall[id] = new_syscall;

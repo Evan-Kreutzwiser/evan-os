@@ -14,7 +14,7 @@ EMUFLAGS := -L /usr/share/edk2-ovmf/x64 -bios OVMF.fd \
  -device ide-hd,drive=disk,bus=ahci.0 \
  -serial stdio \
  -smp 2 \
-
+ -d int -enable-kvm
 
 KERNEL := kernel.sys
 
@@ -25,6 +25,7 @@ BINDIR := ./bin
 FILES := \
 	kernel \
 	asm \
+	gdt \
 	interrupt \
 	syscall \
 	serial \

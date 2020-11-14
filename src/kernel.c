@@ -34,6 +34,8 @@ typedef struct tar_header_t {
     char typeflag[1];
 } __attribute__((packed)) tar_header_t;
 
+char hex_digits[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+
 // Entry point
 // NOTE: This code runs on all cores in parallel 
 void _start(void) {
@@ -47,6 +49,9 @@ void _start(void) {
 
     // Get the pointer to the ramdisk
     volatile void * initrd = (void *)bootboot.initrd_ptr;
+
+    // Disable interrupts
+    cli();
 
     // Draw a rainbow box
     for (uint32_t xpos = 0; xpos < 256; xpos++) {
@@ -79,6 +84,10 @@ void _start(void) {
     text[17] = bootboot.numcores + '0';
     tty_print_string(text);
 
+
+    gdt_init();
+
+
     // Load our interrupt table so we can add exception handlers
     interrupt_load_table();
 
@@ -110,12 +119,9 @@ void _start(void) {
     // Read the EFER register
     uint64_t msr_val = rdmsr(0xC0000080);
 
-    print_val(msr_val, 64);
+    print_hex(msr_val);
 
     tty_print_string("\nSetting syscall bit");
-
-    // Set the syscall bit
-    wrmsr(0xC0000080, rdmsr_low(0xC0000080) | 1, rdmsr_high(0xC0000080));
 
     //if ((msr_val & 0x400) != 0) {
     //    tty_print_string("\nMSR reading check complete.\n");
@@ -123,14 +129,14 @@ void _start(void) {
     //else {
     //    tty_print_string("\nMSR reading check failed.\n");
     //}
-
+    print_hex(0x12f);
     // Set up system calls
     syscall_init();
 
     // Test using system calls to add a system call
-    if (syscall_wrapper(0, 4, (uint64_t)&gp_fault, 0, 0) == 0 ) {
-        tty_print_string("\nSystem call added successfully\n");
-    }
+    //if (syscall_wrapper(0, 4, (uint64_t)&gp_fault, 0, 0) == 0 ) {
+    //    tty_print_string("\nSystem call added successfully\n");
+    //}
 
 
     tty_print_string("\nTesting exception handlers\n");
@@ -176,6 +182,15 @@ void gp_fault(struct interrupt_frame *frame, uint64_t error_code) {
             break;
     }
 
+    uint64_t index = (error_code >> 3) & 0x1fff;
+    tty_print_string("Index: ");
+    print_hex(index);
+    
+    tty_print_string("\n%RIP: ");
+    print_hex(frame->ip);
+    tty_print_string("\n%CS: ");
+    print_hex(frame->cs);
+
     tty_print_string("HALTING KERNEL.\n");
 
     // Stop the computer
@@ -211,11 +226,23 @@ void invalid_opcode_fault(struct interrupt_frame *frame) {
 
 void print_val(uint64_t value, uint8_t bits) {
     tty_print_string("0b");
-    char character[] = "0";
-    uint64_t shifted_val;
+    char character[bits+1];
+    character[bits] = '\0';
+    uint64_t shifted_value;
     for (int i = bits-1; i >= 0; i--) {
-        shifted_val = value >> i;
-        character[0] = (shifted_val & 0b1) + '0';
+        shifted_value = value >> i;
+        character[i] = (shifted_value & 0b1) + '0';
         tty_print_string(character);
+    }
+}
+
+void print_hex(uint64_t value) {
+
+    tty_print_string("0x");
+    uint64_t shifted_value;
+    for (int i = 15; i >= 0; i--) {
+        shifted_value = (value >> (4 * i)) & 0xf;
+        
+        tty_print_char(hex_digits[shifted_value]);
     }
 }
