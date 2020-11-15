@@ -121,7 +121,7 @@ void _start(void) {
 
     print_hex(msr_val);
 
-    tty_print_string("\nSetting syscall bit");
+    tty_print_string("\nSetting up syscalls\n");
 
     //if ((msr_val & 0x400) != 0) {
     //    tty_print_string("\nMSR reading check complete.\n");

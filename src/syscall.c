@@ -9,6 +9,7 @@
 
 #include <interrupt.h>
 #include <tty.h>
+#include <kernel.h>
 
 #include <stdint.h>
 
@@ -20,7 +21,8 @@ struct registers {
 
 };
 
-extern uint64_t syscall_and_return asm("syscall_and_return");
+// Define the syscall assemmbly label as a function
+extern void syscall_and_return(void);
 
 // 256 entry long list of syscalls with a 64 bit return value and argument,
 // for passing sinlge values or struct pointers
@@ -69,14 +71,22 @@ void syscall_init(void) {
 
 	// Set the segments that syscall will set
 	// Set STAR to the segment selectors
-	wrmsr(0xC0000081, 0x8, 0);
+	wrmsr(0xC0000081, 0x0, 0x8);
 	
-	// Set the LSTAR MSR to the 64 bit syscall entry point
-	wrmsr(0xC0000082, (uint32_t)(syscall_and_return&0xffffffff), (uint32_t)(syscall_and_return >> 32) );
+	tty_print_string("Set segment\n");
 
 	// Set the syscall bit
-    wrmsr(0xC0000080, 1, 0); /*rdmsr_low(0xC0000080) | 1, rdmsr_high(0xC0000080));
-*/
+    wrmsr(0xC0000080, rdmsr_low(0xC0000080) | 1, rdmsr_high(0xC0000080));
+
+	tty_print_string("Set syscall bit\n");
+
+	print_hex(syscall_and_return);
+
+	// Set the LSTAR MSR to the 64 bit syscall entry point
+	wrmsr(0xC0000082, (uint32_t)(&syscall_and_return), (uint32_t)((uint64_t)&syscall_and_return >> 32) );
+
+	tty_print_string("Set entry address\n");
+
 }
 
 
