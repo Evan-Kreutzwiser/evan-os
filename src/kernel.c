@@ -101,6 +101,8 @@ void _start(void) {
     interrupt_set_gate(0x8, (uint64_t)&double_fault, INTERRUPT_PRESENT | INTERRUPT_INTERRUPT_GATE);
     // Set up the general protection fault handler
     interrupt_set_gate(0xd, (uint64_t)&gp_fault, INTERRUPT_PRESENT | INTERRUPT_INTERRUPT_GATE);
+    // Set up the page fault handler
+    interrupt_set_gate(0xe, (uint64_t)&page_fault, INTERRUPT_PRESENT | INTERRUPT_INTERRUPT_GATE);
     // Set up the div by 0 fault handler
     interrupt_set_gate(0x0, (uint64_t)&div_0_fault, INTERRUPT_PRESENT | INTERRUPT_INTERRUPT_GATE);
     
@@ -123,25 +125,24 @@ void _start(void) {
 
     tty_print_string("\nSetting up syscalls\n");
 
-    //if ((msr_val & 0x400) != 0) {
-    //    tty_print_string("\nMSR reading check complete.\n");
-    //}
-    //else {
-    //    tty_print_string("\nMSR reading check failed.\n");
-    //}
     print_hex(0x12f);
     // Set up system calls
     syscall_init();
 
     // Test using system calls to add a system call
-    //if (syscall_wrapper(0, 4, (uint64_t)&gp_fault, 0, 0) == 0 ) {
-    //    tty_print_string("\nSystem call added successfully\n");
-    //}
+    if (syscall_wrapper(0, 4, (uint64_t)&gp_fault, 0, 0) == 0 ) {
+        tty_print_string("\nSystem call added successfully\n");
+    }
 
 
-    tty_print_string("\nTesting exception handlers\n");
+    tty_print_string("Testing syscall\n");
+    
+    uint64_t return_val = syscall_wrapper(1, 0, 0, 0, 0);
 
-    volatile int i = 0 / 0;
+    tty_print_string("Returned: ");
+    print_hex(return_val);
+    tty_print_char('\n');
+
     MMapEnt* mmap_ent = &bootboot.mmap; 
     mmap_ent++;
 
@@ -198,6 +199,53 @@ void gp_fault(struct interrupt_frame *frame, uint64_t error_code) {
         cli();
         hlt();
     }
+}
+
+__attribute__((interrupt))
+void page_fault(struct interrupt_frame *frame, uint64_t error_code) {
+
+    uint64_t faulting_address;
+
+    // Get the virtual address of the fault causing instruction
+    asm volatile ("mov %%cr2, %%rax; mov %%rax, %0;" : "=m" (faulting_address) :: "rax");
+
+    tty_print_string("PAGE FAULT. Details:\n");
+
+    // Check bit 0 to see if the error was caused by a non present page or a protection violation
+    if (error_code & 0b1 == 1) {
+        tty_print_string("Page protection violation\n");
+    }
+    else {
+        tty_print_string("Page not present\n"); 
+    }
+
+    if (error_code & 0b10 == 2) {
+        tty_print_string("Write access\n");
+    }
+    else {
+        tty_print_string("Read access\n"); 
+    }
+
+    // Check the priviledge level of the error
+    if (error_code & 0b100 == 4) {
+        tty_print_string("User code\n");
+    }
+    else {
+        tty_print_string("Kernel code\n"); 
+    }
+
+    if (error_code & 0b1000 == 8) {
+        tty_print_string("Reserved bits inccorectly set\n");
+    }
+
+    if (error_code & 0b10000 == 16) {
+        tty_print_string("Instruction fetch\n");
+    }
+
+    // Print the faulting virtual address
+    tty_print_string("V Address: ");
+    print_hex(faulting_address);
+    tty_print_char('\n');
 }
 
 __attribute__ ((interrupt))
