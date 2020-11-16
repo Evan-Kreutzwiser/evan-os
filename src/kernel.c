@@ -129,13 +129,12 @@ void _start(void) {
     // Set up system calls
     syscall_init();
 
-    // Test using system calls to add a system call
-    if (syscall_wrapper(0, 4, (uint64_t)&gp_fault, 0, 0) == 0 ) {
-        tty_print_string("\nSystem call added successfully\n");
-    }
-
-
     tty_print_string("Testing syscall\n");
+    
+    // Test using system calls to add a system call
+    //if (syscall_wrapper(0, 4, (uint64_t)&gp_fault, 0, 0) == 0 ) {
+      //  tty_print_string("\nSystem call added successfully\n");
+    //}
     
     uint64_t return_val = syscall_wrapper(1, 0, 0, 0, 0);
 
@@ -263,7 +262,9 @@ void div_0_fault(struct interrupt_frame *frame) {
 __attribute__ ((interrupt))
 void invalid_opcode_fault(struct interrupt_frame *frame) {
 
-    tty_print_string("INVALID INSTRUCTION ERROR. HALTING KERNEL.");
+    tty_print_string("INVALID INSTRUCTION ERROR. HALTING KERNEL.\nAddress: ");
+
+    print_hex(frame->ip);
 
     // Stop the computer
     while (1) {
