@@ -136,11 +136,11 @@ void _start(void) {
       //  tty_print_string("\nSystem call added successfully\n");
     //}
     
-    uint64_t return_val = syscall_wrapper(1, 0, 0, 0, 0);
+    //uint64_t return_val = syscall_wrapper(1, 0, 0, 0, 0);
 
-    tty_print_string("Returned: ");
-    print_hex(return_val);
-    tty_print_char('\n');
+    //tty_print_string("Returned: ");
+    //print_hex(return_val);
+    //tty_print_char('\n');
 
     MMapEnt* mmap_ent = &bootboot.mmap; 
     mmap_ent++;
