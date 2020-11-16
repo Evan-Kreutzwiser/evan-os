@@ -116,31 +116,10 @@ void _start(void) {
     tty_print_string("Found file [");
     tty_print_string((char*)&file->filename[0]);
 
-    tty_print_string("]\nEFER register:");
-
-    // Read the EFER register
-    uint64_t msr_val = rdmsr(0xC0000080);
-
-    print_hex(msr_val);
-
     tty_print_string("\nSetting up syscalls\n");
 
-    print_hex(0x12f);
     // Set up system calls
     syscall_init();
-
-    tty_print_string("Testing syscall\n");
-    
-    // Test using system calls to add a system call
-    //if (syscall_wrapper(0, 4, (uint64_t)&gp_fault, 0, 0) == 0 ) {
-      //  tty_print_string("\nSystem call added successfully\n");
-    //}
-    
-    //uint64_t return_val = syscall_wrapper(1, 0, 0, 0, 0);
-
-    //tty_print_string("Returned: ");
-    //print_hex(return_val);
-    //tty_print_char('\n');
 
     MMapEnt* mmap_ent = &bootboot.mmap; 
     mmap_ent++;

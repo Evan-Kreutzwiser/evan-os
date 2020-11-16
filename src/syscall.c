@@ -31,7 +31,7 @@ void syscall_and_return(void) {
 	// Store the rcx register
 	asm volatile ("push %rcx");
 
-	asm volatile (" call syscall_interrupt_handler; ");
+	asm volatile (" call execute_syscall; ");
 
 	// Restore the rcx register and return
 	asm volatile ("push %rcx; sysret");
@@ -51,38 +51,21 @@ void syscall_init(void) {
 	// Register the sysscall interrupt
 	interrupt_set_gate(0x80, (uint64_t)&syscall_and_return, INTERRUPT_PRESENT | INTERRUPT_RING_3 | INTERRUPT_INTERRUPT_GATE);
 
-	tty_print_string("call 2 address: ");
-	print_hex(&syscall_unregister);
-	tty_print_char('\n');
-
 	// Add baseline system interrupts to the array
 	syscall[0] = (uint64_t)&syscall_register;
 	syscall[1] = (uint64_t)&syscall_unregister;
 	// TODO: Add interrupt setting syscalls
 	// TODO: Add file system syscalls
 
-	tty_print_string("call 2 address: ");
-	print_hex(syscall[1]);
-	tty_print_char('\n');
+	// Set the syscall bit
+    wrmsr(0xC0000080, rdmsr_low(0xC0000080) | 1, rdmsr_high(0xC0000080));
 
 	// Set the segments that syscall will set
 	// Set STAR to the segment selectors
 	wrmsr(0xC0000081, 0x0, 0x8);
 	
-	tty_print_string("Set segment\n");
-
-	// Set the syscall bit
-    wrmsr(0xC0000080, rdmsr_low(0xC0000080) | 1, rdmsr_high(0xC0000080));
-
-	tty_print_string("Set syscall bit\n");
-
-	print_hex(syscall_and_return);
-
 	// Set the LSTAR MSR to the 64 bit syscall entry point
 	wrmsr(0xC0000082, (uint32_t)(&syscall_and_return), (uint32_t)((uint64_t)&syscall_and_return >> 32) );
-
-	tty_print_string("Set entry address to:\n");
-	print_hex(rdmsr(0xC0000082));
 }
 
 
