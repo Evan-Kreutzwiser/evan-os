@@ -17,14 +17,20 @@ inode_t* mount_roots[30];  // The root diredctory of mounted devices
 						   // are not available
 inode_t* mount_points[30]; // Where devices are mounted
 
-uint32_t read_fs(dentry_t* file, uint32_t offset, uint32_t size, uint8_t *buffer) {
+uint64_t read_fs(dentry_t* file, uint64_t offset, uint64_t size, uint8_t* buffer) {
 
 	// Find the inode of the passed dentry
 	inode_t* inode = (file->inode_ptr);
 
-	// If he buffer pointer
-	if (buffer == 0)    { return FS_ERROR_NULL_BUFFER; }
-	else if (size == 0) { return FS_ERROR_FAILURE; }
+	// If the inode pointer is null
+	if (inode == 0)       { return FS_ERROR_NULL_BUFFER; }
+	// If the buffer pointer is null
+	else if (buffer == 0) { return FS_ERROR_NULL_BUFFER; }
+	// If the caller requested 8 bytes
+	else if (size == 0)   { return FS_ERROR_FAILURE; }
+	// If the offset is outside the file size
+	// Remove when real file reading is implemenet
+	else if (inode->size < offset) { return FS_ERROR_END_OF_FILE; }
 
 	// Use the filesystem's functions to read the file into the buffer
 
@@ -34,7 +40,13 @@ uint32_t read_fs(dentry_t* file, uint32_t offset, uint32_t size, uint8_t *buffer
 	return FS_ERROR_SUCCESS;
 }
 
-uint32_t mount_root(char* file) {
+uint64_t mount_root(char* file) {
 
-	return 1;
+	// If the string is null or 0 length
+	if (file == 0 || file[0] == '\0') {
+		return FS_ERROR_INVALID_PATH;
+	}
+
+	// Return an error, since mounting is not supported yet
+	return FS_ERROR_FAILURE;
 }

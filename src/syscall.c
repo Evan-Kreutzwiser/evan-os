@@ -9,6 +9,7 @@
 
 #include <interrupt.h>
 #include <tty.h>
+#include <asm.h>
 #include <kernel.h>
 
 #include <stdint.h>
@@ -23,7 +24,7 @@ struct registers {
 
 // 256 entry long list of syscalls with a 64 bit return value and argument,
 // for passing sinlge values or struct pointers
-uint64_t (*syscall[256]) (uint64_t, uint64_t, uint64_t, uint64_t);
+syscall_t syscall_table[256];
 
 __attribute__((naked))
 void syscall_and_return(void) {
@@ -34,15 +35,19 @@ void syscall_and_return(void) {
 	asm volatile (" call execute_syscall; ");
 
 	// Restore the rcx register and return
-	asm volatile ("push %rcx; sysret");
+	asm volatile ("pop %rcx; sysretq");
 }
 
 uint64_t execute_syscall(uint64_t id, uint64_t arg0, uint64_t arg1, uint64_t arg2, uint64_t arg3) {
 
 	// Check that the syscall exists
-	if (syscall[id] != 0 && id < 256) {
+	if (syscall_table[id] != 0 && id < 256) {
 		// If it does, call the syscall
-		return syscall[id](arg0, arg1, arg2, arg3);
+		return syscall_table[id](arg0, arg1, arg2, arg3);
+	}
+	else {
+		// If it doesn't, return nothing
+		return 0;
 	}
 }
 
@@ -52,8 +57,8 @@ void syscall_init(void) {
 	interrupt_set_gate(0x80, (uint64_t)&syscall_and_return, INTERRUPT_PRESENT | INTERRUPT_RING_3 | INTERRUPT_INTERRUPT_GATE);
 
 	// Add baseline system interrupts to the array
-	syscall[0] = (uint64_t)&syscall_register;
-	syscall[1] = (uint64_t)&syscall_unregister;
+	syscall_table[0] = (syscall_t)(uint64_t)&syscall_register;
+	syscall_table[1] = (syscall_t)(uint64_t)&syscall_unregister;
 	// TODO: Add interrupt setting syscalls
 	// TODO: Add file system syscalls
 
@@ -65,7 +70,7 @@ void syscall_init(void) {
 	wrmsr(0xC0000081, 0x0, 0x8);
 	
 	// Set the LSTAR MSR to the 64 bit syscall entry point
-	wrmsr(0xC0000082, (uint32_t)(&syscall_and_return), (uint32_t)((uint64_t)&syscall_and_return >> 32) );
+	wrmsr(0xC0000082, (uint32_t)((uint64_t)&syscall_and_return & 0xffffffff), (uint32_t)((uint64_t)&syscall_and_return >> 32) );
 }
 
 
@@ -76,7 +81,7 @@ uint64_t syscall_register(uint64_t id, uint64_t (*new_syscall) (uint64_t, uint64
 	if (id >= 4) {
 		// Set the system call to the passed function pointer
 		tty_print_string("Added a syscall\n");
-		syscall[id] = new_syscall;
+		syscall_table[id] = new_syscall;
 		return 0;
 	}
 
@@ -89,7 +94,7 @@ uint64_t syscall_unregister(uint64_t id, __attribute__ ((unused)) uint64_t arg1,
 	// TODO: Permission checking
 
 	// Void the system call
-	syscall[id] = 0;
+	syscall_table[id] = 0;
 
 
 	return 0;

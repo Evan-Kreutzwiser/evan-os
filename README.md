@@ -11,6 +11,8 @@ Evan OS boots using the bootboot protocol, but due to build problems the files a
 
 Running `make` will compile the kernel, `make install` will install the OS onto an gpt disk image with an efi partition, and `make emu` starts qemu with the disk image containing the OS. The font can be replaced with another psf font to change the OS's tty font, and `make INITRD` will create the tarball without installing it to the img file (Useful for installing Evan OS on real hardware).
 
+To debug Evan OS with gdb, use `make emudebug` to make qemu start paused and wait for a gdb connection.
+
 ## Dependencies
 
 `make install` requires mtools and xorriso to create the disk imaage file, an `make emu` requires qemu with x86_64 platform emulation.

@@ -1,6 +1,7 @@
 
 #include <bootboot.h>
 
+#include <serial.h>
 #include <tty.h>
 
 #include <stdint.h>
@@ -111,6 +112,7 @@ void tty_print_string(char *s) {
 	uint32_t c = 0;
 
 	while (s[c] != 0x0) {
+		serial_write(s[c]);
 		// Print the character
 		tty_print_char(s[c]);
 		// Select the next character

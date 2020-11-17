@@ -16,6 +16,8 @@ EMUFLAGS := -L /usr/share/edk2-ovmf/x64 -bios OVMF.fd \
  -smp 2 \
  -d int -enable-kvm
 
+ EMUFLAGDEBUG := -s -S
+
 KERNEL := kernel.sys
 
 SRCDIR := ./src 
@@ -44,16 +46,23 @@ $(BINDIR):
 	-@mkdir -p $(BINDIR)
 
 $(OBJS): bin/%.o: src/%.c $(BINDIR)
-	$(CC) $(CFLAGS) -c $< -o $@
+	@echo Compiling $<
+	@$(CC) $(CFLAGS) -c $< -o $@
 
-$(KERNEL): $(OBJS)
-	$(LD) -r -b binary -o $(BINDIR)/font.o font.psf
-	$(LD) $(LDFLAGS) $(OBJS) $(BINDIR)/font.o -o $(KERNEL)
+bin/font.o: font.psf
+	@echo Converting font to obj file
+	@$(LD) -r -b binary -o $(BINDIR)/font.o font.psf	
+
+$(KERNEL): $(OBJS) bin/font.o
+	@echo Linking kernel
+	@$(LD) $(LDFLAGS) $(OBJS) $(BINDIR)/font.o -o $(KERNEL)
+	@echo
 	@echo Compilation complete
+	@echo
 
 INITRD: $(KERNEL)
-	@tar -cvf INITRD linker.ld $(KERNEL) font.psf
-	@echo Created bootbootinitrd
+	@tar -cvf INITRD $(KERNEL)
+	@echo Created bootboot initrd
 	
 clean:
 	-rm -f *.o bin/*.o src/*.o kernel.sys INITRD *.img cdimage.iso
@@ -75,3 +84,6 @@ install: INITRD
 
 emu:
 	qemu-system-x86_64 $(EMUFLAGS)
+
+emudebug:
+	qemu-system-x86_64 $(EMUFLAGS) $(EMUFLAGDEBUG)

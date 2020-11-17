@@ -19,6 +19,7 @@
 #define FS_ERROR_INVALID_PERMISSIONS 0x5 // The program does not have the right permissions
 #define FS_ERROR_DOES_NOT_EXIST      0x6 // The target does not exist
 #define FS_ERROR_NODE_TYPE 			 0x7 // The target node is not the correct type
+#define FS_ERROR_INVALID_PATH		 0x8 // The file path (a string) is not valid
 
 // Inode types
 #define FS_FILE        0b00000000 // Regular files

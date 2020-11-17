@@ -38,7 +38,7 @@ void wrmsr(uint32_t msr_id, uint32_t low, uint32_t high) {
 
 uint64_t rdmsr(uint32_t msr_id) {
 	uint64_t output;
-	uint32_t low, high;
+	uint32_t low = 0, high = 0;
 	// Read the value from the msr and combine the 2 32 bit values returned
 	asm volatile ("	mov %2, %%ecx; \
 		rdmsr; \
@@ -53,7 +53,7 @@ uint64_t rdmsr(uint32_t msr_id) {
 }
 
 uint32_t rdmsr_low(uint32_t msr_id) {
-	uint32_t low;
+	uint32_t low = 0;
 	// Read the value from the msr and take only the low 32 bits
 	asm volatile ("	mov %1, %%ecx; \
 		rdmsr; \
@@ -64,7 +64,7 @@ uint32_t rdmsr_low(uint32_t msr_id) {
 }
 
 uint32_t rdmsr_high(uint32_t msr_id) {
-	uint32_t high;
+	uint32_t high = 0;
 	// Read the value from the msr and take only the high 32 bits
 	asm volatile ("	mov %1, %%ecx; \
 		rdmsr; \

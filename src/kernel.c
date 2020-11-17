@@ -40,6 +40,15 @@ char hex_digits[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B',
 // NOTE: This code runs on all cores in parallel 
 void _start(void) {
 
+    // Load the memory segment table
+    gdt_init();
+
+    // Now the kernel can run in its memory segments with a fresh stack
+    kernel();
+}
+
+void kernel(void) {
+
     uint32_t screen_width = bootboot.fb_width;
     uint32_t screen_height = bootboot.fb_height;
     uint32_t scanline = bootboot.fb_scanline;
@@ -84,17 +93,12 @@ void _start(void) {
     text[17] = bootboot.numcores + '0';
     tty_print_string(text);
 
-
-    gdt_init();
-
+    tty_print_string("Loading interrupt table\n");
 
     // Load our interrupt table so we can add exception handlers
     interrupt_load_table();
 
-    tty_print_string("Loaded interrupt table\n");
-
     // Add exception handlers
-
     tty_print_string("Adding exception handlers\n");
 
     // Set up the double fault handler (The most important one)
@@ -116,7 +120,7 @@ void _start(void) {
     tty_print_string("Found file [");
     tty_print_string((char*)&file->filename[0]);
 
-    tty_print_string("\nSetting up syscalls\n");
+    tty_print_string("]\nSetting up syscalls\n");
 
     // Set up system calls
     syscall_init();
@@ -132,9 +136,14 @@ void _start(void) {
 
 
 __attribute__ ((interrupt))
-void double_fault(struct interrupt_frame *frame, uint64_t error_code) {
+void double_fault(struct interrupt_frame *frame /*, uint64_t error_code */ ) {
 
     tty_print_string("UNKOWN CRITICAL ERROR. HALTING KERNEL.\n");
+
+    // Print the address that caused the fault
+    tty_print_string("Address: ");
+    print_hex(frame->ip);
+    tty_print_char('\n');
 
     // Stop the computer
     while (1) {
@@ -170,7 +179,7 @@ void gp_fault(struct interrupt_frame *frame, uint64_t error_code) {
     tty_print_string("\n%CS: ");
     print_hex(frame->cs);
 
-    tty_print_string("HALTING KERNEL.\n");
+    tty_print_string("\nHALTING KERNEL.\n");
 
     // Stop the computer
     while (1) {
@@ -190,14 +199,14 @@ void page_fault(struct interrupt_frame *frame, uint64_t error_code) {
     tty_print_string("PAGE FAULT. Details:\n");
 
     // Check bit 0 to see if the error was caused by a non present page or a protection violation
-    if (error_code & 0b1 == 1) {
+    if ((error_code & 0b1) == 1) {
         tty_print_string("Page protection violation\n");
     }
     else {
         tty_print_string("Page not present\n"); 
     }
 
-    if (error_code & 0b10 == 2) {
+    if ((error_code & 0b10) == 2) {
         tty_print_string("Write access\n");
     }
     else {
@@ -205,24 +214,26 @@ void page_fault(struct interrupt_frame *frame, uint64_t error_code) {
     }
 
     // Check the priviledge level of the error
-    if (error_code & 0b100 == 4) {
+    if ((error_code & 0b100) == 4) {
         tty_print_string("User code\n");
     }
     else {
         tty_print_string("Kernel code\n"); 
     }
 
-    if (error_code & 0b1000 == 8) {
+    if ((error_code & 0b1000) == 8) {
         tty_print_string("Reserved bits inccorectly set\n");
     }
 
-    if (error_code & 0b10000 == 16) {
+    if ((error_code & 0b10000) == 16) {
         tty_print_string("Instruction fetch\n");
     }
 
     // Print the faulting virtual address
     tty_print_string("V Address: ");
     print_hex(faulting_address);
+    tty_print_string("\nCode Segment: ");
+    print_hex(frame->cs);
     tty_print_char('\n');
 }
 
@@ -230,6 +241,11 @@ __attribute__ ((interrupt))
 void div_0_fault(struct interrupt_frame *frame) {
 
     tty_print_string("DIV BY 0 ERROR. HALTING KERNEL.");
+
+    // Print the address that divided by 0
+    tty_print_string("Address: ");
+    print_hex(frame->ip);
+    tty_print_char('\n');
 
     // Stop the computer
     while (1) {
