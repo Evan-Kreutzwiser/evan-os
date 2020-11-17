@@ -3,7 +3,8 @@
 CC := gcc
 LD := ld
 
-CFLAGS := -Wall -Wextra -m64 -fpic -ffreestanding -fno-stack-protector -nostdlib -mno-red-zone -Iinclude -O0
+CFLAGS := -Wall -Wextra \
+	-m64 -fpic -ffreestanding -fno-stack-protector -nostdlib -mno-red-zone -Iinclude -O0 -mno-sse -mno-mmx -mno-80387
 LDFLAGS := -nostdlib -nostartfiles -T linker.ld
 
 EMUFLAGS := -L /usr/share/edk2-ovmf/x64 -bios OVMF.fd \
@@ -12,40 +13,59 @@ EMUFLAGS := -L /usr/share/edk2-ovmf/x64 -bios OVMF.fd \
  -device ahci,id=ahci \
  -device ide-hd,drive=disk,bus=ahci.0 \
  -serial stdio \
+ -smp 2 \
+ -d int -enable-kvm
 
+ EMUFLAGDEBUG := -s -S
 
 KERNEL := kernel.sys
 
 SRCDIR := ./src 
 BINDIR := ./bin
 
-OBJS := \
-	bin/kernel.o \
-	bin/asm.o \
-	bin/interrupt.o \
-	bin/tty.o \
-	bin/serial.o \
-	
+# List the basenames of all source files to compile here
+FILES := \
+	kernel \
+	asm \
+	gdt \
+	interrupt \
+	syscall \
+	serial \
+	tty \
+	vfs \
+
+SRCS := $(addprefix $(SRCDIR)/,$(addsuffix .c,$(FILES)))
+OBJS := $(addprefix $(BINDIR)/,$(addsuffix .o,$(FILES)))
+
+.PHONY: all install clean emu
+.SUFFIXES: .o .c .img .iso .EFI
 
 all: $(KERNEL)
 
 $(BINDIR):
 	-@mkdir -p $(BINDIR)
 
-%.o: ../src/%.c $(BINDIR)
-	$(CC) $(CFLAGS) -c $< -o $@
+$(OBJS): bin/%.o: src/%.c $(BINDIR)
+	@echo Compiling $<
+	@$(CC) $(CFLAGS) -c $< -o $@
 
-$(KERNEL): $(OBJS)
-	$(LD) -r -b binary -o $(BINDIR)/font.o font.psf
-	$(LD) $(LDFLAGS) $(OBJS) $(BINDIR)/font.o -o $(KERNEL)
+bin/font.o: font.psf
+	@echo Converting font to obj file
+	@$(LD) -r -b binary -o $(BINDIR)/font.o font.psf	
+
+$(KERNEL): $(OBJS) bin/font.o
+	@echo Linking kernel
+	@$(LD) $(LDFLAGS) $(OBJS) $(BINDIR)/font.o -o $(KERNEL)
+	@echo
 	@echo Compilation complete
+	@echo
 
 INITRD: $(KERNEL)
 	@tar -cvf INITRD $(KERNEL)
-	@echo Created bootbootinitrd
+	@echo Created bootboot initrd
 	
 clean:
-	-rm *.o bin/*.o src/*.o kernel.sys INITRD fat.img cdimage.iso
+	-rm -f *.o bin/*.o src/*.o kernel.sys INITRD *.img cdimage.iso
 	
 install: INITRD
 	@echo Creating Evan OS disk image
@@ -64,3 +84,6 @@ install: INITRD
 
 emu:
 	qemu-system-x86_64 $(EMUFLAGS)
+
+emudebug:
+	qemu-system-x86_64 $(EMUFLAGS) $(EMUFLAGDEBUG)

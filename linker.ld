@@ -24,7 +24,6 @@
  * DEALINGS IN THE SOFTWARE.
  *
  * This file is part of the BOOTBOOT Protocol package.
- * @brief EvanOS linker file created from the bootboot example linker script
  *
  */
 

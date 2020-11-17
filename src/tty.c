@@ -1,6 +1,7 @@
 
 #include <bootboot.h>
 
+#include <serial.h>
 #include <tty.h>
 
 #include <stdint.h>
@@ -24,7 +25,7 @@ typedef struct {
 } __attribute__((packed)) psf2_t;
 
 // Font
-psf2_t *font = (psf2_t *)&_binary_font_psf_start;
+volatile psf2_t *font = (psf2_t *)&_binary_font_psf_start;
 
 uint32_t char_x, char_y;
 uint32_t fg_color = 0x00ffffff, bg_color = 0x00000000;
@@ -60,14 +61,14 @@ uint32_t tty_get_bg_color(void) {
 void tty_put_char_at(char c, uint32_t xpos, uint32_t ypos) {
 
 	// Make a pointer the the screen's framebuffer
-	uint8_t* pixeladdress;
+	volatile uint8_t* pixeladdress;
 	// Scanline width
 	uint32_t scanline = bootboot.fb_scanline;
 	// Bit mask
 	uint8_t mask;
 
 	// Make a pointer to the data for the glyph to print
-	uint8_t* glyph = (uint8_t *)&_binary_font_psf_start + font->headersize + c * font->bytesperglyph;
+	volatile uint8_t* glyph = (uint8_t *)&_binary_font_psf_start + font->headersize + c * font->bytesperglyph;
 
 	for (uint32_t y = 0; y < font->height; y++) {
 		mask = 0x80; // Set which bit to print
@@ -86,7 +87,24 @@ void tty_put_char_at(char c, uint32_t xpos, uint32_t ypos) {
 	}
 }
 
-void tty_print_char(char c);
+void tty_print_char(char c) {
+
+	switch (c) {
+		case '\n':
+			char_x = 0;
+			char_y++;
+			break;
+		default:
+			tty_put_char_at(c, (char_x*font->width), char_y*font->height);
+			char_x++;
+			break;
+		}
+		
+		if (char_x >= max_x) {
+			char_x = 0;
+			char_y++;
+		}
+}
 
 void tty_print_string(char *s) {
 	
@@ -94,24 +112,11 @@ void tty_print_string(char *s) {
 	uint32_t c = 0;
 
 	while (s[c] != 0x0) {
+		serial_write(s[c]);
 		// Print the character
-		
-		switch (s[c]) {
-		case '\n':
-			char_x = 0;
-			char_y++;
-			break;
-		default:
-			tty_put_char_at(s[c], (char_x*font->width), char_y*font->height);
-			char_x++;
-			break;
-		}
-		c++; // Select the next character
-		
-		if (char_x >= max_x) {
-			char_x = 0;
-			char_y++;
-		}
+		tty_print_char(s[c]);
+		// Select the next character
+		c++;
 	}
 }
 
@@ -130,11 +135,11 @@ void puts_at_pos(char *s, uint32_t xpos, uint32_t ypos) {
 
 void puts_at_pos_transparent(char *s, uint32_t xpos, uint32_t ypos) {
 	// Make a pointer the the screen's framebuffer
-	uint8_t *pixeladdress;
+	volatile uint8_t *pixeladdress;
 	// Width of one line of pixels on the screen
 	uint32_t scanline = bootboot.fb_scanline;
 	// Pointer the glyph data
-	uint8_t *glyph;
+	volatile uint8_t *glyph;
 	uint8_t mask;
 	uint32_t c = 0;			  // The index of the chracter in the string
 	uint32_t fg = 0x00ffffff; // Colors
