@@ -1,6 +1,8 @@
 /*
  * evanos/linker.ld
  *
+ * Linker file obtained from the bootboot sample kernel
+ * 
  * Copyright (C) 2017 - 2020 bzt (bztsrc@gitlab)
  *
  * Permission is hereby granted, free of charge, to any person
