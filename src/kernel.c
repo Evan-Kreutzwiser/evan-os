@@ -64,6 +64,9 @@ void kernel(void) {
     // Disable interrupts
     cli();
 
+    // Initialize the tty to take screen dimensions into account
+    tty_init();
+
     // Draw a rainbow box
     for (uint32_t xpos = 0; xpos < 256; xpos++) {
         for (uint32_t ypos = 0; ypos < 256; ypos++) {
@@ -124,8 +127,9 @@ void kernel(void) {
 
     tty_print_string("Found file [");
     tty_print_string((char*)&file->filename[0]);
-
-    tty_print_string("]\nSetting up syscalls\n");
+    tty_print_string("]\nFile Size: ");
+    print_hex(octal_string_to_int(file->size, 11));
+    tty_print_string("\nSetting up syscalls\n");
 
     // Set up system calls
     syscall_init();
@@ -294,4 +298,22 @@ void print_hex(uint64_t value) {
         
         tty_print_char(hex_digits[shifted_value]);
     }
+}
+
+// Convert an octal string to a sinlge integer that the computer can use
+uint64_t octal_string_to_int(char* octal_string, uint64_t length) {
+    
+    uint64_t decoded_value = 0;
+    uint64_t multiplier = 1;
+
+    // Iterate over every octal string digit, starting from the lowest place value
+    for (int64_t i = length-1; i >= 0; i--, multiplier *= 8) {
+        // Every itteration/digit the multiplier is multiplied by 8 
+        // to account for the digit's place value
+
+        // Add the digit multiplied by its place value to the total decoded value
+        decoded_value += (octal_string[i]-'0') * multiplier;
+    }
+
+    return decoded_value;
 }

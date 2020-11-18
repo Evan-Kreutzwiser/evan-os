@@ -7,7 +7,6 @@
 #include <stdint.h>
 
 extern BOOTBOOT bootboot;							  // See ../dist/bootboot.h
-extern unsigned char *environment;					  // Configuration writen in key=value pairs
 extern uint8_t fb;									  // Linear framebuffer mapped here
 extern volatile unsigned char _binary_font_psf_start; // Font file
 
@@ -33,7 +32,9 @@ uint32_t fg_color = 0x00ffffff, bg_color = 0x00000000;
 uint32_t max_x = 50, max_y = 25;
 
 void tty_init() {
-
+	// Set how many characters wide and tall the tty is based on the screen dimensionss
+	max_x = bootboot.fb_width / 8;
+	max_y = bootboot.fb_height / 16;
 }
 
 // Set position
