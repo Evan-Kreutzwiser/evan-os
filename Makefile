@@ -4,7 +4,8 @@ CC := gcc
 LD := ld
 
 CFLAGS := -Wall -Wextra \
-	-m64 -fpic -ffreestanding -fno-stack-protector -nostdlib -mno-red-zone -Iinclude -O0 -mno-sse -mno-mmx -mno-80387
+	-m64 -fpic -ffreestanding -fno-stack-protector -nostdlib -mno-red-zone \
+	-Iinclude -O0 -mno-sse -mno-mmx -mno-80387
 LDFLAGS := -nostdlib -nostartfiles -T linker.ld
 
 EMUFLAGS := -L /usr/share/edk2-ovmf/x64 -bios OVMF.fd \
@@ -20,32 +21,18 @@ EMUFLAGS := -L /usr/share/edk2-ovmf/x64 -bios OVMF.fd \
 
 KERNEL := kernel.sys
 
-SRCDIR := ./src 
+SRCDIR := ./src
 BINDIR := ./bin
 
-# List the basenames of all source files to compile here
-FILES := \
-	kernel \
-	asm \
-	gdt \
-	interrupt \
-	syscall \
-	serial \
-	tty \
-	vfs \
+SRCS = $(wildcard $(SRCDIR)/*.c)
+OBJS := $(patsubst $(SRCDIR)/%.c, $(BINDIR)/%.o, $(SRCS))
 
-SRCS := $(addprefix $(SRCDIR)/,$(addsuffix .c,$(FILES)))
-OBJS := $(addprefix $(BINDIR)/,$(addsuffix .o,$(FILES)))
-
-.PHONY: all install clean emu
+.PHONY: all install clean emu emudebug
 .SUFFIXES: .o .c .img .iso .EFI
 
 all: $(KERNEL)
 
-$(BINDIR):
-	-@mkdir -p $(BINDIR)
-
-$(OBJS): bin/%.o: src/%.c $(BINDIR)
+$(BINDIR)/%.o: $(SRCDIR)/%.c
 	@echo Compiling $<
 	@$(CC) $(CFLAGS) -c $< -o $@
 
@@ -55,19 +42,23 @@ bin/font.o: font.psf
 
 $(KERNEL): $(OBJS) bin/font.o
 	@echo Linking kernel
+	@echo $(SRCS)
 	@$(LD) $(LDFLAGS) $(OBJS) $(BINDIR)/font.o -o $(KERNEL)
 	@echo
 	@echo Compilation complete
 	@echo
 
 INITRD: $(KERNEL)
+	@echo Creating INITRD
 	@tar -cvf INITRD $(KERNEL)
-	@echo Created bootboot initrd
+	@echo BOOTBOOT INITRD complete
 	
 clean:
-	-rm -f *.o bin/*.o src/*.o kernel.sys INITRD *.img cdimage.iso
+	-rm -f *.o bin/*.o src/*.o bin/*.d kernel.sys INITRD *.img cdimage.iso
 	
-install: INITRD
+install: cdimage.iso
+
+cdimage.iso: INITRD
 	@echo Creating Evan OS disk image
 	@dd if=/dev/zero of=fat.img bs=1k count=1440
 	@mformat -i fat.img -f 1440 ::
@@ -81,6 +72,8 @@ install: INITRD
 	-@mkdir -p iso
 	@cp fat.img iso
 	@xorriso -as mkisofs -R -f -e fat.img -no-emul-boot -o cdimage.iso iso
+	@echo 
+	@echo Evan OS ISO complete
 
 emu:
 	qemu-system-x86_64 $(EMUFLAGS)

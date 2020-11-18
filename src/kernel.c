@@ -38,15 +38,17 @@ char hex_digits[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B',
 
 // Entry point
 // NOTE: This code runs on all cores in parallel 
+__attribute__((section(".text.boot")))
 void _start(void) {
 
     // Load the memory segment table
     gdt_init();
 
-    // Now the kernel can run in its memory segments with a fresh stack
+    // Now the kernel can run in its properly set memory segments
     kernel();
 }
 
+// The main kernel function responsible for inirializing Evan OS
 void kernel(void) {
 
     uint32_t screen_width = bootboot.fb_width;
