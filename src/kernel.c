@@ -98,6 +98,9 @@ void kernel(void) {
     // Load our interrupt table so we can add exception handlers
     interrupt_load_table();
 
+    // Fill the entries for driver assignable interrupts
+    interrupt_init();
+
     // Add exception handlers
     tty_print_string("Adding exception handlers\n");
 
