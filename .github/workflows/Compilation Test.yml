@@ -14,8 +14,8 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Install Dependencies
-      run: sudo apt-get install mtools xorriso
+      run: sudo apt-get install mtools xorriso gcc-10
     - name: Make
-      run: make
+      run: make CC=gcc-10
     - name: Make ISO
       run: make install
