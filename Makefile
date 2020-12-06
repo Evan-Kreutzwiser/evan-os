@@ -34,6 +34,7 @@ all: $(KERNEL)
 
 $(BINDIR)/%.o: $(SRCDIR)/%.c
 	@echo Compiling $<
+	@mkdir -p $(BINDIR)
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 bin/font.o: font.psf
@@ -42,7 +43,6 @@ bin/font.o: font.psf
 
 $(KERNEL): $(OBJS) bin/font.o
 	@echo Linking kernel
-	@echo $(SRCS)
 	@$(LD) $(LDFLAGS) $(OBJS) $(BINDIR)/font.o -o $(KERNEL)
 	@echo
 	@echo Compilation complete
@@ -54,7 +54,7 @@ INITRD: $(KERNEL)
 	@echo BOOTBOOT INITRD complete
 	
 clean:
-	-rm -f *.o bin/*.o src/*.o bin/*.d kernel.sys INITRD *.img cdimage.iso
+	-rm -rf $(BINDIR) $(KERNEL) INITRD ./iso cdimage.iso
 	
 install: cdimage.iso
 
@@ -72,7 +72,7 @@ cdimage.iso: INITRD
 	-@mkdir -p iso
 	@cp fat.img iso
 	@xorriso -as mkisofs -R -f -e fat.img -no-emul-boot -o cdimage.iso iso
-	@echo 
+	
 	@echo Evan OS ISO complete
 
 emu:
