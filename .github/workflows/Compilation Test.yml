@@ -1,0 +1,21 @@
+name: Compile
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install Dependencies
+      run: sudo apt-get install mtools xorriso gcc-10
+    - name: Make
+      run: make CC=gcc-10
+    - name: Make ISO
+      run: make install
