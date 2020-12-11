@@ -13,6 +13,9 @@
 
 #include <stdint.h>
 
+#define extract_entry_address(e) ((e & 0xFFFFFFFFFFFFF000))
+#define entry_present(e) (e & 0b1)
+
 extern BOOTBOOT bootboot; // Bootboot structure
 
 uint64_t *page_table; //[512][512][512][512];
@@ -37,7 +40,65 @@ void paging_init(void) {
     }
     
     // Print out the memory size
-    tty_print_string("Memory size (Bytes): ");
+    tty_print_string("Table base address: ");
+    print_hex((uint64_t)page_table);
+    tty_print_string("\nMemory size (Bytes): ");
     print_hex(max_physical_address);
     tty_print_char('\n');
+}
+
+uint64_t paging_get_physical_address(uint64_t virtual_address) {
+
+    // Get the table indexes by breaking up the virtual address into 9-bit sections
+    uint16_t page_table_index =             (virtual_address >> 12) & 0x1FF;
+    uint16_t page_directory_index =         (virtual_address >> 21) & 0x1FF;
+    uint16_t page_directory_pointer_index = (virtual_address >> 30) & 0x1FF;
+    uint16_t page_level_4_index =           (virtual_address >> 39) & 0x1FF;
+
+    // Work down the levels of the table to find the physical address
+
+    if (entry_present(page_table[page_level_4_index]) == 0) {
+        tty_print_string("\npml4 entry not present");
+    }
+
+    // Get the page directory pointer's address 
+    uint64_t* table = (uint64_t*)extract_entry_address(page_table[page_level_4_index]);
+
+    if (entry_present(table[page_directory_pointer_index]) == 0) {
+        tty_print_string("\npdp entry not present");
+    }
+
+    // Get the page directory's address 
+    table = (uint64_t*)extract_entry_address(table[page_directory_pointer_index]);
+
+    if (entry_present(table[page_directory_index]) == 0) {
+        tty_print_string("\npd entry not present");
+    }
+
+    // Get the page table's address 
+    table = (uint64_t*)extract_entry_address(table[page_directory_index]);
+
+    if (entry_present(table[page_table_index]) == 0) {
+        tty_print_string("\npt entry not present");
+    }
+
+    // Get and return the physical address recorded in the page 
+    return extract_entry_address(table[page_table_index]);
+}
+
+
+// Load a new virtual address space from the page tables at the given address
+void paging_load_address_space(uint64_t table_base_address) {
+
+    // Load the new table address into the CR3 register 
+    asm volatile ("mov %0, %%cr3;" : : "r" (table_base_address) : );
+
+}
+
+// Switch to the virtual address space where all of the RAM is identity mapped
+void paging_load_identity_map_space(void) {
+
+    // Load the new table address into the CR3 register 
+    asm volatile ("mov %0, %%cr3;" : : "r" (page_table) : );
+
 }
