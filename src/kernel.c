@@ -65,8 +65,6 @@ void kernel(void) {
     // Disable interrupts
     cli();
 
-    paging_init();
-
     // Initialize the tty to take screen dimensions into account
     tty_init();
 
@@ -136,6 +134,8 @@ void kernel(void) {
 
     // Set up system calls
     syscall_init();
+
+    paging_init();
 
     // Loop to prevent the kernel from returning to nothing and crashing
     // The OS should run tasks instead of this

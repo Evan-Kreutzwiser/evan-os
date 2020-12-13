@@ -87,6 +87,23 @@ uint64_t paging_get_physical_address(uint64_t virtual_address) {
 }
 
 
+void paging_map_page(uint64_t virtual_address, uint64_t phyiscal_address, uint16_t flags) {
+
+    // Get the table indexes by breaking up the virtual address into 9-bit sections
+    uint16_t page_table_index =             (virtual_address >> 12) & 0x1FF;
+    uint16_t page_directory_index =         (virtual_address >> 21) & 0x1FF;
+    uint16_t page_directory_pointer_index = (virtual_address >> 30) & 0x1FF;
+    uint16_t page_level_4_index =           (virtual_address >> 39) & 0x1FF;
+
+    // Make sure all levels of the table are present and have addresses set
+
+}
+
+void paging_unmap_page(uint64_t virtual_address) {
+
+    
+}
+
 // Load a new virtual address space from the page tables at the given address
 void paging_load_address_space(uint64_t table_base_address) {
 
