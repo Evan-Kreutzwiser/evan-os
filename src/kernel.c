@@ -13,6 +13,7 @@
 #include <tty.h>
 #include <serial.h> // Serial port output
 #include <syscall.h>
+#include <paging.h>
 
 // Std headers
 #include <stdint.h>
@@ -134,8 +135,7 @@ void kernel(void) {
     // Set up system calls
     syscall_init();
 
-    MMapEnt* mmap_ent = &bootboot.mmap; 
-    mmap_ent++;
+    paging_init();
 
     // Loop to prevent the kernel from returning to nothing and crashing
     // The OS should run tasks instead of this
