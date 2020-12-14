@@ -36,4 +36,8 @@ uint8_t inportb(uint16_t port);
 uint16_t inportw(uint16_t port);
 uint32_t inportl(uint16_t port);
 
+// Invalidate memory pages
+
+void invlpg(void * page_address);
+
 #endif

@@ -21,6 +21,11 @@ void paging_unmap_page(uint64_t virtual_address);
 // Get the physical address mapped to the given virtual address
 uint64_t paging_get_physical_address(uint64_t virtual_address);
 
+// Allocate some pages to put a level of the page table in
+void * paging_allocate_table_level();
+// Deallocate a section of the page table data area to resuse later
+void paging_free_table_level(void * pointer);
+
 // Load a new virtual address space from the page tables at the given address
 void paging_load_address_space(uint64_t table_base_address);
 // Load the address space where the ram is identity mapped
