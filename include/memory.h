@@ -22,5 +22,10 @@ void* kmalloc(size_t size);
 // Release an allocated section of memory
 uint64_t kfree(void * pointer);
 
+// Reallocate data with a new size
+uint64_t krealloc(void * pointer, size_t new_size);
+
+// Copy a section of memory from one location to another
+void* memcpy(void* dest, void* src, size_t size);
 
 #endif // MEMORY_H
