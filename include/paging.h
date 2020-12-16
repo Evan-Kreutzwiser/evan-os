@@ -18,6 +18,7 @@ void paging_map_page(uint64_t virtual_address, uint64_t phyiscal_address, uint16
 // Unmap a page of memory to prevent access
 void paging_unmap_page(uint64_t virtual_address);
 
+uint64_t paging_get_pte_address(uint64_t virtual_address);
 // Get the physical address mapped to the given virtual address
 uint64_t paging_get_physical_address(uint64_t virtual_address);
 

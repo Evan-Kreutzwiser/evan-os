@@ -43,8 +43,6 @@ void paging_init(void) {
         max_physical_address += MMapEnt_Size(mmap);
         mmap++;
     }
-    
-    tty_print_string("Bootstrap allocator sanity test:\n");
 
     // Allocate 3 table levels
     void * pointer = paging_allocate_table_level();
@@ -57,8 +55,9 @@ void paging_init(void) {
     // Allocate a 4th area (should take the space of the freed second area)
     void * pointer4 = paging_allocate_table_level();
 
-    if (pointer4 == pointer2) { tty_print_string("Check passed\n"); }
-    else { tty_print_string("Check failed\n"); }
+    tty_print_string("Startup page allocator ");
+    if (pointer4 == pointer2) { tty_print_string("check passed\n"); }
+    else { tty_print_string("check failed\n"); }
 
     // Free the test pointers
     paging_free_table_level(pointer);
@@ -73,9 +72,8 @@ void paging_init(void) {
     tty_print_char('\n');
 }
 
-uint64_t paging_get_physical_address(uint64_t virtual_address) {
-
-    // Get the table indexes by breaking up the virtual address into 9-bit sections
+uint64_t paging_get_pte_address(uint64_t virtual_address) {
+        // Get the table indexes by breaking up the virtual address into 9-bit sections
     uint16_t page_table_index =             (virtual_address >> 12) & 0x1FF;
     uint16_t page_directory_index =         (virtual_address >> 21) & 0x1FF;
     uint16_t page_directory_pointer_index = (virtual_address >> 30) & 0x1FF;
@@ -112,8 +110,15 @@ uint64_t paging_get_physical_address(uint64_t virtual_address) {
         return 0; // Return null
     }
 
+    return (uint64_t)&table[page_table_index];
+}
+
+uint64_t paging_get_physical_address(uint64_t virtual_address) {
+
+    uint64_t* address = (uint64_t*)paging_get_pte_address(virtual_address);
+
     // Get and return the physical address recorded in the page 
-    return extract_entry_address(table[page_table_index]);
+    return extract_entry_address(address[0]);
 }
 
 
@@ -132,7 +137,7 @@ void paging_map_page(uint64_t virtual_address, uint64_t phyiscal_address, uint16
     // If the top level table entry is not present, allocate the next level 
     if (entry_present(page_table[page_level_4_index]) == 0) {
         // Allocate a new table level, put the address in the table, and mark it as present
-        page_table[page_level_4_index] |= ((uint64_t)paging_allocate_table_level() & PAGE_ADDRESS_MASK) | 1;
+        page_table[page_level_4_index] = ((uint64_t)paging_allocate_table_level() & PAGE_ADDRESS_MASK) | 1;
         tty_print_string("Allocated new PDP\n");
     }
 
@@ -142,7 +147,7 @@ void paging_map_page(uint64_t virtual_address, uint64_t phyiscal_address, uint16
     // If the next level of the table entry is not present, allocate it 
     if (entry_present(table_pointer[page_directory_pointer_index]) == 0) {
         // Allocate a new table level, put the address in the table, and mark it as present
-        table_pointer[page_directory_pointer_index] |= ((uint64_t)paging_allocate_table_level() & PAGE_ADDRESS_MASK) | 1;
+        table_pointer[page_directory_pointer_index] = ((uint64_t)paging_allocate_table_level() & PAGE_ADDRESS_MASK) | 1;
         tty_print_string("Allocated new PD\n");
     }
 
@@ -152,7 +157,7 @@ void paging_map_page(uint64_t virtual_address, uint64_t phyiscal_address, uint16
     // If the next level of the table entry is not present, allocate it 
     if (entry_present(table_pointer[page_directory_index]) == 0) {
         // Allocate a new table level, put the address in the table, and mark it as present
-        table_pointer[page_directory_index] |= ((uint64_t)paging_allocate_table_level() & PAGE_ADDRESS_MASK) | 1;
+        table_pointer[page_directory_index] = ((uint64_t)paging_allocate_table_level() & PAGE_ADDRESS_MASK) | 1;
         tty_print_string("Allocated new PT\n");
     }
 
@@ -160,8 +165,8 @@ void paging_map_page(uint64_t virtual_address, uint64_t phyiscal_address, uint16
     table_pointer = (uint64_t*)extract_entry_address(table_pointer[page_directory_index]);
 
     // Mark it as present and set the flags
-    table_pointer[page_table_index] |= (phyiscal_address & PAGE_ADDRESS_MASK) | flags;
-        
+    table_pointer[page_table_index] = (phyiscal_address & PAGE_ADDRESS_MASK) | flags;
+
     invlpg((uint64_t*)virtual_address);
 }
 
