@@ -124,3 +124,45 @@ uint64_t kfree(void * pointer) {
 
     return -1;
 }
+
+// Reallocate data with a new size
+void* krealloc(void * pointer, size_t new_size) {
+
+    // If the caller requested 0 bytes of memory, free their old block and dont allocate a new one 
+    if (new_size == 0) {
+        kfree(pointer);
+        return NULL;
+    }
+
+    // Extract the old blocks size from the pointer
+    size_t old_size = ((memory_block_t*)( (uint64_t)pointer - sizeof(memory_block_t)) )->size;
+    
+    // Allocate a new space in memory for the data    
+    void* new_pointer = kmalloc(new_size);
+
+    if (new_pointer != NULL) {
+        // Copy the data into the new location
+        memcpy(new_pointer, pointer, old_size);
+        // Free the old block
+        kfree(pointer);
+        // Return the new pointer
+        return new_pointer;
+    }
+
+    return NULL;
+}
+
+// Copy a section of memory from one location to another
+void* memcpy(void* dest, void* src, size_t size) {
+    
+    // TODO: This needs some serious optimization
+
+    char* destination = (char*)dest;
+    char* source = (char*)src;
+
+    for (size_t n = 0; n < size; n++) {
+        destination[n] = source[n];
+    }
+
+    return dest;
+}
