@@ -126,7 +126,7 @@ uint64_t kfree(void * pointer) {
 }
 
 // Reallocate data with a new size
-uint64_t krealloc(void * pointer, size_t new_size) {
+void* krealloc(void * pointer, size_t new_size) {
 
     // If the caller requested 0 bytes of memory, free their old block and dont allocate a new one 
     if (new_size == 0) {
@@ -165,4 +165,4 @@ void* memcpy(void* dest, void* src, size_t size) {
     }
 
     return dest;
-} 
+}
