@@ -3,7 +3,7 @@
 CC := gcc
 LD := ld
 
-CFLAGS := -Wall -Wextra \
+CFLAGS := -Wall -Wextra -Wpointer-arith \
 	-m64 -fpic -ffreestanding -fno-stack-protector -nostdlib -mno-red-zone \
 	-Iinclude -O0 -mno-sse -mno-mmx -mno-80387
 LDFLAGS := -nostdlib -nostartfiles -T linker.ld
@@ -14,7 +14,7 @@ EMUFLAGS := -L /usr/share/edk2-ovmf/x64 -bios OVMF.fd \
  -device ahci,id=ahci \
  -device ide-hd,drive=disk,bus=ahci.0 \
  -serial stdio \
- -smp 2 \
+ -smp 2 -m 1G\
  -d int -enable-kvm
 
  EMUFLAGDEBUG := -s -S
