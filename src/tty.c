@@ -90,13 +90,14 @@ void tty_put_char_at(char c, uint32_t xpos, uint32_t ypos) {
 
 void tty_print_char(char c) {
 
+	serial_write(c); // Output the character to the serial output
+
 	switch (c) {
 		case '\n':
 			char_x = 0;
 			char_y++;
 			break;
 		default:
-			serial_write(c); // Output the character to the serial output
 			tty_put_char_at(c, (char_x*font->width), char_y*font->height);
 			char_x++;
 			break;
