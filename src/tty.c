@@ -96,6 +96,7 @@ void tty_print_char(char c) {
 			char_y++;
 			break;
 		default:
+			serial_write(c); // Output the character to the serial output
 			tty_put_char_at(c, (char_x*font->width), char_y*font->height);
 			char_x++;
 			break;
@@ -113,7 +114,6 @@ void tty_print_string(char *s) {
 	uint32_t c = 0;
 
 	while (s[c] != 0x0) {
-		serial_write(s[c]);
 		// Print the character
 		tty_print_char(s[c]);
 		// Select the next character
