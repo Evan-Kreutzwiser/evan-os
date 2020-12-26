@@ -13,8 +13,9 @@
 #include <tty.h>
 #include <serial.h> // Serial port output
 #include <syscall.h>
-#include <paging.h>
-#include <memory.h>
+#include <memory/paging.h>
+#include <memory/memory.h>
+#include <memory/rangeallocator.h>
 
 // Std headers
 #include <stdint.h>
@@ -136,10 +137,24 @@ void kernel(void) {
     // Set up system calls
     syscall_init();
 
+    // Set up the memory paging system
     paging_init();
+
+    *((uint8_t*)0x1000+IDENTITY_MAP_OFFSET) = 0x23;
 
     // Set up basic memory allocation
     memory_allocation_init();
+
+    // Switch paging to malloc mode
+    //paging_enable_memory_allocation();
+
+    // Create and load a blank test address space
+    void * address_space_pointer = paging_create_address_space();
+    address_space_pointer = paging_get_physical_address(address_space_pointer);
+    print_hex(address_space_pointer);
+    //print_hex(paging_get_physical_address(0x00100));
+    paging_load_address_space(address_space_pointer);
+    //paging_load_identity_map_space();
 
     // Test memory allocation
 

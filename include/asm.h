@@ -40,4 +40,9 @@ uint32_t inportl(uint16_t port);
 
 void invlpg(void * page_address);
 
+// Cr3 register
+
+uint64_t cr3_read();
+void cr3_write(uint64_t value);
+
 #endif

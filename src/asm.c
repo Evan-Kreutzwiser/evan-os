@@ -120,3 +120,17 @@ inline void invlpg(void * page_address) {
 	// Invalidate / flush a page of memory
 	asm volatile("invlpg (%0);" : : "r" (page_address) : "memory");
 }
+
+// Cr3 register
+
+inline uint64_t cr3_read() {
+	uint64_t value;
+	// Read the value of cr3 into the variable
+	asm volatile ("mov %%cr3, %%rax; mov %%rax, %0;" : "=m" (value) : : "rax");
+	return value;
+}
+
+inline void cr3_write(uint64_t value) {
+	// Write the passed value to the cr3 register
+	asm volatile ("mov %0, %%cr3;" : : "r" (value) : );
+}

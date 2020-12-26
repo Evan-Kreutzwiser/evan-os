@@ -1,5 +1,5 @@
 /*
- * evan-os/include/memory.h
+ * evan-os/include/memory/memory.h
  * 
  * Declares functions for dynamically allocating memory.
  * 
@@ -27,5 +27,7 @@ void* krealloc(void * pointer, size_t new_size);
 
 // Copy a section of memory from one location to another
 void* memcpy(void* dest, void* src, size_t size);
+// Fill a section of memory with the frist byte of the given value
+void* memset(void* ptr, int value, size_t size); // TODO: Implement this
 
 #endif // MEMORY_H

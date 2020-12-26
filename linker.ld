@@ -49,7 +49,12 @@ SECTIONS
         . = ALIGN(16);
         *(.bss .bss.*)
         *(COMMON)
+
+        /* My adition */
         . = ALIGN(4096);
+        page_bitmap = .; page_bitmap_size = 2097152; /* Bitmap storing page usage */
+        . += page_bitmap_size;
+        
         heap_location = .;
     } :boot
 

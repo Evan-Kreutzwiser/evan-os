@@ -1,47 +1,77 @@
 /*
- * evan-os/src/paging.c
+ * evan-os/src/memory/paging.c
  * 
  * Manages page tables and the mapping of virtual addresses to physical RAM
  * 
  */
 
-#include <paging.h>
+#include <memory/paging.h>
 
 #include <kernel.h>
+#include <memory/memory.h>
+#include <memory/rangeallocator.h>
 #include <tty.h>
 #include <asm.h>
 #include <bootboot.h>
 
 #include <stdint.h>
 
-#define PAGE_ADDRESS_MASK 0x000FFFFFFFFFF000
-#define extract_entry_address(e) ((e & PAGE_ADDRESS_MASK))
-#define entry_present(e) (e & 0b1)
+// Get a bit from a bitmap
+#define bitmap_get_bit(bitmap, index, bit) (bitmap[index] & (1 << bit))
+// Set a bit of a bitmap to 1
+#define bitmap_set_bit(bitmap, index, bit)   (((uint8_t*)bitmap)[index] |= (1 << bit))
+// Set a bit of a bitmap to 0
+#define bitmap_unset_bit(bitmap, index, bit) (((uint8_t*)bitmap)[index] &= ~(1 << bit))
 
 extern BOOTBOOT bootboot; // Bootboot structure
 
+extern uint8_t* page_bitmap; // Page usage bitmap
+uint64_t page_bitmap_size; // Size of the bitmap
+
 uint64_t *page_table; //[512][512][512][512];
+uint64_t kernel_pml4_entry[512];
 
-uint64_t *table_allocation_area[16][512] __attribute__((aligned(4096)));
+// Only half of these 16 slots can be used due to alignment requirements
+uint64_t table_allocation_area[16][512] __attribute__((aligned(4096)));
 
-uint8_t allocation_map[16];
+uint8_t allocation_map[8];
 
 uint64_t max_physical_address = 0;
+
+// Set to 1 when the paging system can allocate new tables using malloc
+uint8_t use_malloc = 0;
 
 void paging_init(void) {
 
     // Save the address of the page tables created by the uefi
-    asm volatile ("mov %%cr3, %%rax; mov %%rax, %0;" : "=m" (page_table) : : "rax");
+    page_table = cr3_read();
+
+    // Map ALL of the ram linearly at a large offset
+    identity_map_memory();
+
+    // Save the kernel pml4 table level
+    memcpy(kernel_pml4_entry, page_table, 2048);
 
     // Use the memory map to get the size of the physical RAM
     uint8_t mmap_entry_count = (bootboot.size - 128) / 16; // Get the number of entries
     
     MMapEnt* mmap = (MMapEnt*)&bootboot.mmap.ptr; // Get the pointer to the memory map
     
+    tty_print_string("Memory Map:\n");
+
     for (uint8_t i = 0; i < mmap_entry_count; i++) {
+        tty_print_string("Entry from ");
+        print_hex(max_physical_address);
         // Add the entry's size to the maximum address
         max_physical_address += MMapEnt_Size(mmap);
+        
+        tty_print_string(" to ");
+        print_hex(max_physical_address);
+        tty_print_string(" (type ");
+        tty_print_char(MMapEnt_Type(mmap) + '0');
+        tty_print_string(")\n");
         mmap++;
+
     }
 
     // Allocate 3 table levels
@@ -71,6 +101,9 @@ void paging_init(void) {
     print_hex(max_physical_address);
     tty_print_char('\n');
 }
+
+// Make the paging system use dynamic memory allocation instead of the boot time data area
+// void paging_enable_memory_allocation(void);
 
 uint64_t paging_get_pte_address(uint64_t virtual_address) {
         // Get the table indexes by breaking up the virtual address into 9-bit sections
@@ -117,12 +150,19 @@ uint64_t paging_get_physical_address(uint64_t virtual_address) {
 
     uint64_t* address = (uint64_t*)paging_get_pte_address(virtual_address);
 
-    // Get and return the physical address recorded in the page 
-    return extract_entry_address(address[0]);
+    tty_print_string("PTE at: ");
+    print_hex((uint64_t)address);
+
+    // Get and return the physical address recorded in the page, and the offset into the page
+    return extract_entry_address(address[0]) | (virtual_address & 0xfff);
 }
 
 
-void paging_map_page(uint64_t virtual_address, uint64_t phyiscal_address, uint16_t flags) {
+// Allocate a group of pages
+
+
+
+void paging_map_page(uint64_t virtual_address, uint64_t physical_address, uint16_t flags) {
 
     // Get the table indexes by breaking up the virtual address into 9-bit sections
     uint16_t page_table_index =             (virtual_address >> 12) & 0x1FF;
@@ -164,30 +204,102 @@ void paging_map_page(uint64_t virtual_address, uint64_t phyiscal_address, uint16
     // Store a pointer to the page entry for the requested address
     table_pointer = (uint64_t*)extract_entry_address(table_pointer[page_directory_index]);
 
-    // Mark it as present and set the flags
-    table_pointer[page_table_index] = (phyiscal_address & PAGE_ADDRESS_MASK) | flags;
+    // Mark it as present and set the flags and address
+    paging_set_entry((uint64_t*)&table_pointer[page_table_index], physical_address, flags);
 
     invlpg((uint64_t*)virtual_address);
 }
 
 void paging_unmap_page(uint64_t virtual_address) {
-    tty_print_string("\nERROR: Page unmapping not supported\n");
+    
+    // Get the page entry address
+    uint64_t* entry = paging_get_pte_address(virtual_address);
+
+    // Remove the present bit
+    entry[0] &= ~1;
+
+    // Refresh the cache to account for the missing page
+    invlpg((void*)virtual_address);
+
+    // TODO: Count how many pages are used to allow for deallocating unneeded table segments
 }
 
+void paging_set_entry(uint64_t* entry, uint64_t physical_address, uint16_t flags) {
+    // Fill in the entry with the physical address of the next page level or the memory being mapped, and the flags
+    entry[0] = (physical_address & PAGE_ADDRESS_MASK) | flags;
+}
+
+
+// Allocate pages starting from the given address
+uint64_t paging_allocate_pages(void * start_address, uint64_t count) {
+
+
+
+
+}
+
+
+// Creates and sets up a blank address space with the kernel mapped to it, and returns a pointer to the PML4 for loading it
+void * paging_create_address_space(void) {
+
+    // Allocate a table level for the pml4
+    uint64_t* pml4_pointer = (uint64_t*)paging_allocate_table_level();
+
+    print_hex((uint64_t)pml4_pointer);
+
+    // Zero the allocated table
+    for (uint16_t i = 0; i < 512; i++) {
+        pml4_pointer[i] = 0;
+    }
+
+    memcpy(pml4_pointer, kernel_pml4_entry, 2048);
+
+    // Map the kernel memory
+    for (uint16_t i = 0; i < 512; i++) {
+        if (kernel_pml4_entry[i] != 0) {
+            tty_print_string("Entry ");
+            print_hex(i);
+            tty_print_string(": ");
+            print_hex(kernel_pml4_entry[i]);
+            tty_print_char('\n');
+        }
+    }
+/*    pml4_pointer[511] = kernel_pml4_entry[511];
+    pml4_pointer[510] = kernel_pml4_entry[510];
+    pml4_pointer[509] = kernel_pml4_entry[509];
+    
+    pml4_pointer[508] = kernel_pml4_entry[508];
+    pml4_pointer[507] = kernel_pml4_entry[507];
+    pml4_pointer[506] = kernel_pml4_entry[506];
+    pml4_pointer[505] = kernel_pml4_entry[505];
+    pml4_pointer[504] = kernel_pml4_entry[504];
+    pml4_pointer[503] = kernel_pml4_entry[503];
+    pml4_pointer[1] = kernel_pml4_entry[1];
+    pml4_pointer[0] = kernel_pml4_entry[0];
+*/
+    // Return the new address space
+    return pml4_pointer;
+}
+
+
 // Allocate some pages to put a level of the page table in
-void * paging_allocate_table_level() {
+void * paging_allocate_table_level(void) {
+
+    //if (use_malloc) {
+      //  return kmalloc(2048);
+    //}
 
     // A level of the page table can neatly fit into a single page
     // If the page allocation tracking supports it, 2 groups of 512 entries can fit in a page
 
     // Find the first available page
-    for (int i = 0; i < 16; i++) {
+    for (int i = 0; i < 8; i++) {
         // Check if the page is unused
         if (allocation_map[i] == 0) {
             // Mark it as used
             allocation_map[i] = 1;
             // Return a pointer to that section of the data area
-            return &table_allocation_area[i][0];
+            return &table_allocation_area[i*2][0];
         }
 
     }
@@ -209,9 +321,9 @@ void paging_free_table_level(void * pointer) {
 
     // Compare the pointer with all of the array indices
     // TODO: FIND A BETTER WAY TO DO THIS
-    for (int i = 0; i < 16; i++) {
+    for (int i = 0; i < 8; i++) {
         // Check if the pointer matches
-        if (pointer == &table_allocation_area[i][0]) {
+        if (pointer == &table_allocation_area[i*2][0]) {
             // Check that the area was actually in use
             if (allocation_map[i] != 0) {
                 // Mark the area as free
@@ -232,8 +344,10 @@ void paging_free_table_level(void * pointer) {
 }
 
 // Load a new virtual address space from the page tables at the given address
-void paging_load_address_space(uint64_t table_base_address) {
+void paging_load_address_space(void * table_base_address) {
 
+    tty_print_string("\nLoading new table: ");
+    print_hex((uint64_t)table_base_address);
     // Load the new table address into the CR3 register 
     asm volatile ("mov %0, %%cr3;" : : "r" (table_base_address) : );
 
@@ -241,6 +355,8 @@ void paging_load_address_space(uint64_t table_base_address) {
 
 // Switch to the virtual address space where all of the RAM is identity mapped
 void paging_load_identity_map_space(void) {
+
+    print_hex((uint64_t)page_table);
 
     // Load the new table address into the CR3 register 
     asm volatile ("mov %0, %%cr3;" : : "r" (page_table) : );
