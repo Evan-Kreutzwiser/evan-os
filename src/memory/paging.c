@@ -50,7 +50,7 @@ void paging_init(void) {
     identity_map_memory();
 
     // Save the kernel pml4 table level
-    memcpy(kernel_pml4_entry, page_table, 2048);
+    memcpy(kernel_pml4_entry, page_table, 4092);
 
     // Use the memory map to get the size of the physical RAM
     uint8_t mmap_entry_count = (bootboot.size - 128) / 16; // Get the number of entries
@@ -252,7 +252,7 @@ void * paging_create_address_space(void) {
         pml4_pointer[i] = 0;
     }
 
-    memcpy(pml4_pointer, kernel_pml4_entry, 2048);
+    memcpy(pml4_pointer, kernel_pml4_entry, 4092);
 
     // Map the kernel memory
     for (uint16_t i = 0; i < 512; i++) {
@@ -264,19 +264,7 @@ void * paging_create_address_space(void) {
             tty_print_char('\n');
         }
     }
-/*    pml4_pointer[511] = kernel_pml4_entry[511];
-    pml4_pointer[510] = kernel_pml4_entry[510];
-    pml4_pointer[509] = kernel_pml4_entry[509];
     
-    pml4_pointer[508] = kernel_pml4_entry[508];
-    pml4_pointer[507] = kernel_pml4_entry[507];
-    pml4_pointer[506] = kernel_pml4_entry[506];
-    pml4_pointer[505] = kernel_pml4_entry[505];
-    pml4_pointer[504] = kernel_pml4_entry[504];
-    pml4_pointer[503] = kernel_pml4_entry[503];
-    pml4_pointer[1] = kernel_pml4_entry[1];
-    pml4_pointer[0] = kernel_pml4_entry[0];
-*/
     // Return the new address space
     return pml4_pointer;
 }
