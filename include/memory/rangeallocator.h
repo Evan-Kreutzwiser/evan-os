@@ -11,13 +11,8 @@
 #include <stdint.h>
 #include <stddef.h>
 
-typedef struct range_descriptor_t {
-
-    struct range_descriptor_t * next;
-    void * start;
-    size_t size;
-} range_descriptor_t;
-
 void identity_map_memory(void);
+
+void read_memory_map(void);
 
 #endif // RANGE_ALLOCATOR_H

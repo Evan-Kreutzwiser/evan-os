@@ -120,7 +120,7 @@ void kernel(void) {
     interrupt_set_gate(0xe, (uint64_t)&page_fault, INTERRUPT_PRESENT | INTERRUPT_INTERRUPT_GATE);
     // Set up the div by 0 fault handler
     interrupt_set_gate(0x0, (uint64_t)&div_0_fault, INTERRUPT_PRESENT | INTERRUPT_INTERRUPT_GATE);
-    
+    // Set up the invalid instruction fault handler
     interrupt_set_gate(0x6, (uint64_t)&invalid_opcode_fault, INTERRUPT_PRESENT | INTERRUPT_INTERRUPT_GATE);
 
     // Load drivers from disk as needed
@@ -140,8 +140,6 @@ void kernel(void) {
     // Set up the memory paging system
     paging_init();
 
-    *((uint8_t*)0x1000+IDENTITY_MAP_OFFSET) = 0x23;
-
     // Set up basic memory allocation
     memory_allocation_init();
 
@@ -149,12 +147,9 @@ void kernel(void) {
     //paging_enable_memory_allocation();
 
     // Create and load a blank test address space
-    void * address_space_pointer = paging_create_address_space();
-    address_space_pointer = paging_get_physical_address(address_space_pointer);
-    print_hex(address_space_pointer);
-    //print_hex(paging_get_physical_address(0x00100));
-    paging_load_address_space(address_space_pointer);
-    //paging_load_identity_map_space();
+    void * address_space_pointer = paging_create_address_space(); // Create the address space's pml4
+    address_space_pointer = (void*)paging_get_physical_address((uint64_t)address_space_pointer); // Get its phyiscal address
+    paging_load_address_space(address_space_pointer); // Load the new pml4
 
     // Test memory allocation
 

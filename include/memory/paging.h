@@ -46,7 +46,5 @@ void paging_free_table_level(void * pointer);
 
 // Load a new virtual address space from the page tables at the given address
 void paging_load_address_space(void * table_base_address);
-// Load the address space where the ram is identity mapped
-void paging_load_identity_map_space(void);
 
 #endif // PAGINH_H

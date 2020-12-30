@@ -49,30 +49,11 @@ void paging_init(void) {
     // Map ALL of the ram linearly at a large offset
     identity_map_memory();
 
+    // Read the memory map to get the usable ranges of memory
+    read_memory_map();
+
     // Save the kernel pml4 table level
-    memcpy(kernel_pml4_entry, page_table, 4092);
-
-    // Use the memory map to get the size of the physical RAM
-    uint8_t mmap_entry_count = (bootboot.size - 128) / 16; // Get the number of entries
-    
-    MMapEnt* mmap = (MMapEnt*)&bootboot.mmap.ptr; // Get the pointer to the memory map
-    
-    tty_print_string("Memory Map:\n");
-
-    for (uint8_t i = 0; i < mmap_entry_count; i++) {
-        tty_print_string("Entry from ");
-        print_hex(max_physical_address);
-        // Add the entry's size to the maximum address
-        max_physical_address += MMapEnt_Size(mmap);
-        
-        tty_print_string(" to ");
-        print_hex(max_physical_address);
-        tty_print_string(" (type ");
-        tty_print_char(MMapEnt_Type(mmap) + '0');
-        tty_print_string(")\n");
-        mmap++;
-
-    }
+    memcpy(kernel_pml4_entry, page_table, 4096);
 
     // Allocate 3 table levels
     void * pointer = paging_allocate_table_level();
@@ -252,7 +233,7 @@ void * paging_create_address_space(void) {
         pml4_pointer[i] = 0;
     }
 
-    memcpy(pml4_pointer, kernel_pml4_entry, 4092);
+    memcpy(pml4_pointer, kernel_pml4_entry, 4096);
 
     // Map the kernel memory
     for (uint16_t i = 0; i < 512; i++) {
@@ -264,7 +245,7 @@ void * paging_create_address_space(void) {
             tty_print_char('\n');
         }
     }
-    
+
     // Return the new address space
     return pml4_pointer;
 }
@@ -338,15 +319,5 @@ void paging_load_address_space(void * table_base_address) {
     print_hex((uint64_t)table_base_address);
     // Load the new table address into the CR3 register 
     asm volatile ("mov %0, %%cr3;" : : "r" (table_base_address) : );
-
-}
-
-// Switch to the virtual address space where all of the RAM is identity mapped
-void paging_load_identity_map_space(void) {
-
-    print_hex((uint64_t)page_table);
-
-    // Load the new table address into the CR3 register 
-    asm volatile ("mov %0, %%cr3;" : : "r" (page_table) : );
 
 }
