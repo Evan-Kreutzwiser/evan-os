@@ -16,7 +16,7 @@
 #define IDENTITY_MAP_OFFSET 0x40000000000ul
 
 #define PAGE_ADDRESS_MASK 0x000FFFFFFFFFF000ul
-#define extract_entry_address(e) ((e & PAGE_ADDRESS_MASK))
+#define extract_entry_address(e) (e & PAGE_ADDRESS_MASK)
 #define entry_present(e) (e & 0b1)
 
 // Set up/prepare the page tables
@@ -31,6 +31,9 @@ void paging_map_page(uint64_t virtual_address, uint64_t physical_address, uint16
 void paging_unmap_page(uint64_t virtual_address);
 // Set a page table entry to contain the given flags and address
 void paging_set_entry(uint64_t* entry, uint64_t physical_address, uint16_t flags);
+
+// Allocate pages starting from the given virtual address
+void paging_allocate_pages(void * start_address, uint64_t count);
 
 // Creates and sets up a blank address space with the kernel mapped to it, and returns a pointer to the PML4 for loading it
 void * paging_create_address_space(void);

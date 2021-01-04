@@ -43,11 +43,13 @@ uint8_t use_malloc = 0;
 
 void paging_init(void) {
 
-    // Save the address of the page tables created by the uefi
-    page_table = (uint64_t*)cr3_read();
-
     // Map ALL of the ram linearly at a large offset
     identity_map_memory();
+    // Save the address of the page tables created by the uefi, offset to use the linear mapping created above
+    page_table = (uint64_t*)(cr3_read() + IDENTITY_MAP_OFFSET);
+
+    // Remove the identity mapped portion of the table made by the firmware
+    page_table[0] = 0;
 
     // Read the memory map to get the usable ranges of memory
     read_memory_map();
@@ -101,7 +103,7 @@ uint64_t* paging_get_pte_address(uint64_t virtual_address) {
     }
 
     // Get the page directory pointer's address 
-    uint64_t* table = (uint64_t*)extract_entry_address(page_table[page_level_4_index]);
+    uint64_t* table = (uint64_t*)(extract_entry_address(page_table[page_level_4_index]) + IDENTITY_MAP_OFFSET);
 
     if (entry_present(table[page_directory_pointer_index]) == 0) {
         tty_print_string("\npdp entry not present");
@@ -109,7 +111,7 @@ uint64_t* paging_get_pte_address(uint64_t virtual_address) {
     }
 
     // Get the page directory's address 
-    table = (uint64_t*)extract_entry_address(table[page_directory_pointer_index]);
+    table = (uint64_t*)(extract_entry_address(table[page_directory_pointer_index]) + IDENTITY_MAP_OFFSET);
 
     if (entry_present(table[page_directory_index]) == 0) {
         tty_print_string("\npd entry not present");
@@ -117,7 +119,7 @@ uint64_t* paging_get_pte_address(uint64_t virtual_address) {
     }
 
     // Get the page table's address 
-    table = (uint64_t*)extract_entry_address(table[page_directory_index]);
+    table = (uint64_t*)(extract_entry_address(table[page_directory_index]) + IDENTITY_MAP_OFFSET);
 
     if (entry_present(table[page_table_index]) == 0) {
         tty_print_string("\npt entry not present");
@@ -163,7 +165,7 @@ void paging_map_page(uint64_t virtual_address, uint64_t physical_address, uint16
     }
 
     // Store a pointer to the next level of the table
-    table_pointer = (uint64_t*)extract_entry_address(page_table[page_level_4_index]);
+    table_pointer = (uint64_t*)(extract_entry_address(page_table[page_level_4_index]) + IDENTITY_MAP_OFFSET);
 
     // If the next level of the table entry is not present, allocate it 
     if (entry_present(table_pointer[page_directory_pointer_index]) == 0) {
@@ -173,7 +175,7 @@ void paging_map_page(uint64_t virtual_address, uint64_t physical_address, uint16
     }
 
     // Store a pointer to the next level of the table
-    table_pointer = (uint64_t*)extract_entry_address(table_pointer[page_directory_pointer_index]);
+    table_pointer = (uint64_t*)(extract_entry_address(table_pointer[page_directory_pointer_index]) + IDENTITY_MAP_OFFSET);
 
     // If the next level of the table entry is not present, allocate it 
     if (entry_present(table_pointer[page_directory_index]) == 0) {
@@ -183,7 +185,7 @@ void paging_map_page(uint64_t virtual_address, uint64_t physical_address, uint16
     }
 
     // Store a pointer to the page entry for the requested address
-    table_pointer = (uint64_t*)extract_entry_address(table_pointer[page_directory_index]);
+    table_pointer = (uint64_t*)(extract_entry_address(table_pointer[page_directory_index]) + IDENTITY_MAP_OFFSET);
 
     // Mark it as present and set the flags and address
     paging_set_entry((uint64_t*)&table_pointer[page_table_index], physical_address, flags);
@@ -212,11 +214,19 @@ void paging_set_entry(uint64_t* entry, uint64_t physical_address, uint16_t flags
 
 
 // Allocate pages starting from the given address
-uint64_t paging_allocate_pages(void * start_address, uint64_t count) {
+void paging_allocate_pages(void * start_address, uint64_t count) {
 
-
-
-
+    uint64_t virtual_address = (uint64_t)start_address; 
+    // Allocate the physical memory
+    uint64_t physcial_address = allocate_range(count*4096);
+    
+    // Map every page of the allocated memory
+    for (uint64_t i = 0; i < count; i++) {
+        paging_map_page(virtual_address, physcial_address, 0b11);
+        // Increment the addresses by a single page
+        virtual_address  += 4096;
+        physcial_address += 4096;
+    }
 }
 
 
@@ -227,11 +237,6 @@ void * paging_create_address_space(void) {
     uint64_t* pml4_pointer = (uint64_t*)paging_allocate_table_level();
 
     print_hex((uint64_t)pml4_pointer);
-
-    // Zero the allocated table
-    for (uint16_t i = 0; i < 512; i++) {
-        pml4_pointer[i] = 0;
-    }
 
     // Copy the top level table to the newly allocated table
     // TODO: Remove mappings of lower addresses to make room for process address spaces

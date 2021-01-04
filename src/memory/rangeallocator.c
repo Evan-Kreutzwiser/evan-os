@@ -15,21 +15,14 @@
 
 #include <stdint.h>
 
+#define MMAP_ARRAY_SIZE 32
+
 extern BOOTBOOT bootboot; // The bootboot structer, containing the memory map
 
 uint64_t identity_map_pdp_table[512] __attribute__((aligned(4096)));
 uint64_t identity_map_pd_tables[128][512] __attribute__((aligned(4096)));
 
-// 0x20 0000 = 2 MiB
-
-typedef struct range_t {
-    struct range_t* next; // Points to the next range descriptor
-    uint64_t base; // The ranges starting address
-    uint64_t size; // The size of the address range in bytes
-    uint8_t used; // If the block is used or not
-} range_t;
-
-range_t memory_map[32]; // Room for 32 range descriptors for the memory map
+range_t memory_map[MMAP_ARRAY_SIZE]; // Space for range descriptors representing the memory map, and later the broken up segments allocated here
 
 // Indentity maps the entire RAM. Run before paging_init
 void identity_map_memory(void) {
@@ -72,8 +65,15 @@ void read_memory_map(void) {
     uint8_t mmap_entry_count = (bootboot.size - 128) / 16;
         
     // If the memory map is too big 
-    if (mmap_entry_count > 32) {
+    if (mmap_entry_count >= MMAP_ARRAY_SIZE) {
         tty_print_string("ERROR: memory map too large. Halting kernel.");
+    }
+
+    // Zero the table
+    for (uint64_t i = 0; i < MMAP_ARRAY_SIZE; i++) {
+        // Only .next and.base are checked to find unused entries
+        memory_map[i].next = NULL;
+        memory_map[i].base = 0;
     }
 
     // Get the pointer to the memory map
@@ -99,4 +99,54 @@ void read_memory_map(void) {
     }
     // The last memory range entry should not have a next entry
     memory_map[mmap_entry_count-1].next = NULL; 
+}
+
+// Allocate a region of memory that is 'size' bytes large, rounded upwards to the nearest page
+uint64_t allocate_range(uint64_t size) {
+
+    // Round the size upwards to the nearest page
+    size += 0x1000 - (size & 0xfff); 
+
+    // Find the first unused range of the requested size
+    for (uint64_t i = 0; i < MMAP_ARRAY_SIZE; i++) {
+        // If the current descriptor is free and has enough space
+        if (memory_map[i].used == 0 && memory_map[i].size >= size) {
+            // Mark this entry as used
+            memory_map[i].used = 1;
+            // Get an unused entry to split this one with
+            range_t* new_entry = range_get_unused_entry();
+            // Fill in the new entry
+            new_entry->size = memory_map[i].size - size; // It fills the space not being allocated with the old descriptor
+            new_entry->base = memory_map[i].base + size;
+            new_entry->next = memory_map[i].next;
+            new_entry->used = 0; // Make sure it is marked as unused
+            // Modify the descriptor of the range being allocated to include the new block,
+            memory_map[i].next = new_entry;
+            // And shrink it to fit the allocated amount
+            memory_map[i].size = size;
+
+            // Return the physical address of the allocated range
+            return memory_map[i].base;
+        }
+    }
+    // If the range could not be allocated
+    tty_print_string("ERROR: Range allocator list full or large enough space not found.");
+    return -1;
+}
+
+// TODO: Plan and implement deallocation of memory ranges that are no longer needed (eg. the memory of a killed process)
+
+// Get an unused range descriptor, used to split ranges
+range_t* range_get_unused_entry(void) {
+    // Search for an unused entry and return it
+    for (uint64_t i = 0; i < MMAP_ARRAY_SIZE; i++) {
+        // If the descriptor's next block and base addresses are both null, then it should be unused
+        if (memory_map[i].next == NULL && memory_map[i].base == 0) {
+            // Return a pointer to the entry
+            return &memory_map[i];
+        }
+    }
+    // If no free entry was found
+    tty_print_string("ERROR: Range allocator list full.");
+    return NULL;
 }
