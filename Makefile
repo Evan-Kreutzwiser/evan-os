@@ -3,7 +3,7 @@
 CC := gcc
 LD := ld
 
-CFLAGS := -Wall -Wextra -Wpointer-arith -Wcast-align \
+CFLAGS := -Wall -Wextra \
 	-m64 -fpic -ffreestanding -fno-stack-protector -nostdlib -mno-red-zone \
 	-Iinclude -O0 -mno-sse -mno-mmx -mno-80387
 LDFLAGS := -nostdlib -nostartfiles -T linker.ld
@@ -14,7 +14,7 @@ EMUFLAGS := -L /usr/share/edk2-ovmf/x64 -bios OVMF.fd \
  -device ahci,id=ahci \
  -device ide-hd,drive=disk,bus=ahci.0 \
  -serial stdio \
- -smp 2 -m 1G -vga qxl \
+ -smp 2 \
  -d int -enable-kvm
 
  EMUFLAGDEBUG := -s -S
@@ -24,7 +24,7 @@ KERNEL := kernel.sys
 SRCDIR := ./src
 BINDIR := ./bin
 
-SRCS = $(shell find $(SRCDIR)/ -type f -name '*.c')
+SRCS = $(wildcard $(SRCDIR)/*.c)
 OBJS := $(patsubst $(SRCDIR)/%.c, $(BINDIR)/%.o, $(SRCS))
 
 .PHONY: all install clean emu emudebug
@@ -34,7 +34,7 @@ all: $(KERNEL)
 
 $(BINDIR)/%.o: $(SRCDIR)/%.c
 	@echo Compiling $<
-	@mkdir -p "$(@D)"
+	@mkdir -p $(BINDIR)
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 bin/font.o: font.psf

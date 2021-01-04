@@ -12,23 +12,23 @@
 
 // Interrupts
 
-inline void sti(void) {
+void sti(void) {
     asm volatile ("sti");
 }
 
-inline void cli(void) {
+void cli(void) {
     asm volatile ("cli");
 }
 
 // Stop the computer
 
-inline void hlt(void) {
+void hlt(void) {
     asm volatile ("hlt");
 }
 
 // Model Specific Register manupulation
 
-inline void wrmsr(uint32_t msr_id, uint32_t low, uint32_t high) {
+void wrmsr(uint32_t msr_id, uint32_t low, uint32_t high) {
 	// Write the value to the msr
 	asm volatile (" mov %0, %%eax; \
 		mov %1, %%edx; \
@@ -36,7 +36,7 @@ inline void wrmsr(uint32_t msr_id, uint32_t low, uint32_t high) {
 		wrmsr;" : : "m"(low), "m"(high), "m"(msr_id) : "eax", "edx", "ecx");
 }
 
-inline uint64_t rdmsr(uint32_t msr_id) {
+uint64_t rdmsr(uint32_t msr_id) {
 	uint64_t output;
 	uint32_t low = 0, high = 0;
 	// Read the value from the msr and combine the 2 32 bit values returned
@@ -52,7 +52,7 @@ inline uint64_t rdmsr(uint32_t msr_id) {
 	return output;
 }
 
-inline uint32_t rdmsr_low(uint32_t msr_id) {
+uint32_t rdmsr_low(uint32_t msr_id) {
 	uint32_t low = 0;
 	// Read the value from the msr and take only the low 32 bits
 	asm volatile ("	mov %1, %%ecx; \
@@ -63,7 +63,7 @@ inline uint32_t rdmsr_low(uint32_t msr_id) {
 	return low;
 }
 
-inline uint32_t rdmsr_high(uint32_t msr_id) {
+uint32_t rdmsr_high(uint32_t msr_id) {
 	uint32_t high = 0;
 	// Read the value from the msr and take only the high 32 bits
 	asm volatile ("	mov %1, %%ecx; \
@@ -76,61 +76,40 @@ inline uint32_t rdmsr_high(uint32_t msr_id) {
 
 // Outputing to io ports
 
-inline void outportb(uint16_t port, uint8_t data) {
+void outportb(uint16_t port, uint8_t data) {
     
     asm volatile ("outb %0, %1" : : "a"(data), "Nd"(port));
 }
 
-inline void outportw(uint16_t port, uint16_t data) {
+void outportw(uint16_t port, uint16_t data) {
 
     asm volatile ("outw %0, %1" : : "a"(data), "Nd"(port));
 }
 
-inline void outportl(uint16_t port, uint32_t data) {
+void outportl(uint16_t port, uint32_t data) {
 
     asm volatile ("outl %0, %1" : : "a"(data), "Nd"(port));
 }
 
 // Input through io ports
 
-inline uint8_t inportb(uint16_t port) {
+uint8_t inportb(uint16_t port) {
     
 	uint8_t volatile data;
 	asm volatile ("inb %%dx,%%al":"=a" (data) : "d" (port));
 	return data;
 }
 
-inline uint16_t inportw(uint16_t port) {
+uint16_t inportw(uint16_t port) {
 
 	uint16_t volatile data;
 	asm volatile ("inw %%dx,%%ax":"=a" (data) : "d" (port));
 	return data;
 }
 
-inline uint32_t inportl(uint16_t port) {
+uint32_t inportl(uint16_t port) {
 
 	uint32_t volatile data;
 	asm volatile ("inl %%dx,%%eax":"=a" (data) : "d" (port));
 	return data;
-}
-
-// Invalidate Page
-
-inline void invlpg(void * page_address) {
-	// Invalidate / flush a page of memory
-	asm volatile("invlpg (%0);" : : "r" (page_address) : "memory");
-}
-
-// Cr3 register
-
-inline uint64_t cr3_read() {
-	uint64_t value;
-	// Read the value of cr3 into the variable
-	asm volatile ("mov %%cr3, %%rax; mov %%rax, %0;" : "=m" (value) : : "rax");
-	return value;
-}
-
-inline void cr3_write(uint64_t value) {
-	// Write the passed value to the cr3 register
-	asm volatile ("mov %0, %%cr3;" : : "r" (value) : );
 }
