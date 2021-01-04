@@ -15,7 +15,7 @@ EMUFLAGS := -L /usr/share/edk2-ovmf/x64 -bios OVMF.fd \
  -device ide-hd,drive=disk,bus=ahci.0 \
  -serial stdio \
  -smp 2 -m 1G -vga qxl \
- -d int # -enable-kvm
+ -d int -enable-kvm
 
  EMUFLAGDEBUG := -s -S
 
