@@ -1,13 +1,13 @@
 /*
- * evan-os/src/memory.c
+ * evan-os/src/memory/memory.c
  * 
  * Manages kernel memory allocation
  * 
  */
 
-#include <memory.h>
+#include <memory/memory.h>
 
-#include <paging.h>
+#include <memory/paging.h>
 #include <tty.h>
 #include <kernel.h>
 

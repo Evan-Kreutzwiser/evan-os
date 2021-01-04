@@ -13,8 +13,9 @@
 #include <tty.h>
 #include <serial.h> // Serial port output
 #include <syscall.h>
-#include <paging.h>
-#include <memory.h>
+#include <memory/paging.h>
+#include <memory/memory.h>
+#include <memory/rangeallocator.h>
 
 // Std headers
 #include <stdint.h>
@@ -119,7 +120,7 @@ void kernel(void) {
     interrupt_set_gate(0xe, (uint64_t)&page_fault, INTERRUPT_PRESENT | INTERRUPT_INTERRUPT_GATE);
     // Set up the div by 0 fault handler
     interrupt_set_gate(0x0, (uint64_t)&div_0_fault, INTERRUPT_PRESENT | INTERRUPT_INTERRUPT_GATE);
-    
+    // Set up the invalid instruction fault handler
     interrupt_set_gate(0x6, (uint64_t)&invalid_opcode_fault, INTERRUPT_PRESENT | INTERRUPT_INTERRUPT_GATE);
 
     // Load drivers from disk as needed
@@ -136,10 +137,19 @@ void kernel(void) {
     // Set up system calls
     syscall_init();
 
+    // Set up the memory paging system
     paging_init();
 
     // Set up basic memory allocation
     memory_allocation_init();
+
+    // Switch paging to malloc mode
+    //paging_enable_memory_allocation();
+
+    // Create and load a blank test address space
+    void * address_space_pointer = paging_create_address_space(); // Create the address space's pml4
+    address_space_pointer = (void*)paging_get_physical_address((uint64_t)address_space_pointer); // Get its phyiscal address
+    paging_load_address_space(address_space_pointer); // Load the new pml4
 
     // Test memory allocation
 
