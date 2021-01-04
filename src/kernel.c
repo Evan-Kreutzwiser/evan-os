@@ -13,9 +13,6 @@
 #include <tty.h>
 #include <serial.h> // Serial port output
 #include <syscall.h>
-#include <memory/paging.h>
-#include <memory/memory.h>
-#include <memory/rangeallocator.h>
 
 // Std headers
 #include <stdint.h>
@@ -120,7 +117,7 @@ void kernel(void) {
     interrupt_set_gate(0xe, (uint64_t)&page_fault, INTERRUPT_PRESENT | INTERRUPT_INTERRUPT_GATE);
     // Set up the div by 0 fault handler
     interrupt_set_gate(0x0, (uint64_t)&div_0_fault, INTERRUPT_PRESENT | INTERRUPT_INTERRUPT_GATE);
-    // Set up the invalid instruction fault handler
+    
     interrupt_set_gate(0x6, (uint64_t)&invalid_opcode_fault, INTERRUPT_PRESENT | INTERRUPT_INTERRUPT_GATE);
 
     // Load drivers from disk as needed
@@ -137,48 +134,12 @@ void kernel(void) {
     // Set up system calls
     syscall_init();
 
-    // Set up the memory paging system
-    paging_init();
+    MMapEnt* mmap_ent = &bootboot.mmap; 
+    mmap_ent++;
 
-    // Set up basic memory allocation
-    memory_allocation_init();
-
-    // Switch paging to malloc mode
-    //paging_enable_memory_allocation();
-
-    // Create and load a blank test address space
-    void * address_space_pointer = paging_create_address_space(); // Create the address space's pml4
-    address_space_pointer = (void*)paging_get_physical_address((uint64_t)address_space_pointer); // Get its phyiscal address
-    paging_load_address_space(address_space_pointer); // Load the new pml4
-
-    // Test memory allocation
-
-    // Allocate 2 chunks of memory
-    uint8_t* pointer = kmalloc(2048);
-    uint8_t* pointer2 = kmalloc(2048);
-    // Free one
-    kfree(pointer2);
-    // Allocate a 3rd
-    uint8_t* pointer3 = kmalloc(1024);
-    
-    // Check if the freed space was reused
-    if ((uint64_t)pointer2 == (uint64_t)pointer3) {
-        tty_print_string("Memory allocation test passed\n");
-    } 
-    else {
-        tty_print_string("ERROR: Memory allocation test failed\n");
-    }
-
-    // Free the pointers to reuse the memory
-    kfree(pointer);
-    kfree(pointer3);
-
-    // Stop the computer
+    // Loop to prevent the kernel from returning to nothing and crashing
     // The OS should run tasks instead of this
-    while(1) {
-        cli();
-        hlt();
-    }
+    while(1);
 }
 
 
@@ -280,8 +241,6 @@ void page_fault(struct interrupt_frame *frame, uint64_t error_code) {
     // Print the faulting virtual address
     tty_print_string("V Address: ");
     print_hex(faulting_address);
-    tty_print_string("Faulting Address: ");
-    print_hex(frame->ip);
     tty_print_string("\nCode Segment: ");
     print_hex(frame->cs);
     tty_print_char('\n');

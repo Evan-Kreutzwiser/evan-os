@@ -90,8 +90,6 @@ void tty_put_char_at(char c, uint32_t xpos, uint32_t ypos) {
 
 void tty_print_char(char c) {
 
-	serial_write(c); // Output the character to the serial output
-
 	switch (c) {
 		case '\n':
 			char_x = 0;
@@ -115,6 +113,7 @@ void tty_print_string(char *s) {
 	uint32_t c = 0;
 
 	while (s[c] != 0x0) {
+		serial_write(s[c]);
 		// Print the character
 		tty_print_char(s[c]);
 		// Select the next character

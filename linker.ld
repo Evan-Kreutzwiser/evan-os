@@ -29,15 +29,15 @@
  *
  */
 
-mmio  = 0xffffffff80000000;                    /* Configurable for level 2 loaders like this one */
-fb    = 0xffffffffc0000000;
+mmio  = 0xfffffffff8000000;                    /* Configurable for level 2 loaders like this one */
+fb    = 0xfffffffffc000000;
 PHDRS
 {
   boot PT_LOAD;                                /* One single loadable segment */
 }
 SECTIONS
 {
-    . = 0xffffffffe0000000;                    /* Kernel base address in upper memory */
+    . = 0xffffffffffe00000;                    /* Kernel base address in upper memory */
     bootboot    = .; . += 4096;
     environment = .; . += 4096;
     .text : {
@@ -49,13 +49,6 @@ SECTIONS
         . = ALIGN(16);
         *(.bss .bss.*)
         *(COMMON)
-
-        /* My adition */
-        . = ALIGN(4096);
-        page_bitmap = .; page_bitmap_size = 2097152; /* Bitmap storing page usage */
-        . += page_bitmap_size;
-        
-        heap_location = .;
     } :boot
 
     /DISCARD/ : { *(.eh_frame) *(.comment) }

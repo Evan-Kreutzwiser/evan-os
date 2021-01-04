@@ -36,13 +36,4 @@ uint8_t inportb(uint16_t port);
 uint16_t inportw(uint16_t port);
 uint32_t inportl(uint16_t port);
 
-// Invalidate memory pages
-
-void invlpg(void * page_address);
-
-// Cr3 register
-
-uint64_t cr3_read();
-void cr3_write(uint64_t value);
-
 #endif
