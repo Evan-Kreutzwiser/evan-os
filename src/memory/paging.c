@@ -44,7 +44,7 @@ uint8_t use_malloc = 0;
 void paging_init(void) {
 
     // Save the address of the page tables created by the uefi
-    page_table = cr3_read();
+    page_table = (uint64_t*)cr3_read();
 
     // Map ALL of the ram linearly at a large offset
     identity_map_memory();
@@ -86,7 +86,7 @@ void paging_init(void) {
 // Make the paging system use dynamic memory allocation instead of the boot time data area
 // void paging_enable_memory_allocation(void);
 
-uint64_t paging_get_pte_address(uint64_t virtual_address) {
+uint64_t* paging_get_pte_address(uint64_t virtual_address) {
         // Get the table indexes by breaking up the virtual address into 9-bit sections
     uint16_t page_table_index =             (virtual_address >> 12) & 0x1FF;
     uint16_t page_directory_index =         (virtual_address >> 21) & 0x1FF;
@@ -124,12 +124,12 @@ uint64_t paging_get_pte_address(uint64_t virtual_address) {
         return 0; // Return null
     }
 
-    return (uint64_t)&table[page_table_index];
+    return &table[page_table_index];
 }
 
 uint64_t paging_get_physical_address(uint64_t virtual_address) {
 
-    uint64_t* address = (uint64_t*)paging_get_pte_address(virtual_address);
+    uint64_t* address = paging_get_pte_address(virtual_address);
 
     tty_print_string("PTE at: ");
     print_hex((uint64_t)address);
@@ -233,18 +233,9 @@ void * paging_create_address_space(void) {
         pml4_pointer[i] = 0;
     }
 
+    // Copy the top level table to the newly allocated table
+    // TODO: Remove mappings of lower addresses to make room for process address spaces
     memcpy(pml4_pointer, kernel_pml4_entry, 4096);
-
-    // Map the kernel memory
-    for (uint16_t i = 0; i < 512; i++) {
-        if (kernel_pml4_entry[i] != 0) {
-            tty_print_string("Entry ");
-            print_hex(i);
-            tty_print_string(": ");
-            print_hex(kernel_pml4_entry[i]);
-            tty_print_char('\n');
-        }
-    }
 
     // Return the new address space
     return pml4_pointer;

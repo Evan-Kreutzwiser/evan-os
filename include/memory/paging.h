@@ -29,13 +29,15 @@ void paging_enable_memory_allocation(void);
 void paging_map_page(uint64_t virtual_address, uint64_t physical_address, uint16_t flags);
 // Unmap a page of memory to prevent access
 void paging_unmap_page(uint64_t virtual_address);
-
+// Set a page table entry to contain the given flags and address
 void paging_set_entry(uint64_t* entry, uint64_t physical_address, uint16_t flags);
 
 // Creates and sets up a blank address space with the kernel mapped to it, and returns a pointer to the PML4 for loading it
 void * paging_create_address_space(void);
 
-uint64_t paging_get_pte_address(uint64_t virtual_address);
+// Get the physical address of a 4KB page's lowest level table entry
+uint64_t* paging_get_pte_address(uint64_t virtual_address);
+
 // Get the physical address mapped to the given virtual address
 uint64_t paging_get_physical_address(uint64_t virtual_address);
 
