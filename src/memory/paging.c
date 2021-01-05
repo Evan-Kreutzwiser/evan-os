@@ -85,9 +85,7 @@ void paging_init(void) {
     tty_print_char('\n');
 }
 
-// Make the paging system use dynamic memory allocation instead of the boot time data area
-// void paging_enable_memory_allocation(void);
-
+// Get the virtual address of a lowest level page table entry
 uint64_t* paging_get_pte_address(uint64_t virtual_address) {
         // Get the table indexes by breaking up the virtual address into 9-bit sections
     uint16_t page_table_index =             (virtual_address >> 12) & 0x1FF;
@@ -139,10 +137,6 @@ uint64_t paging_get_physical_address(uint64_t virtual_address) {
     // Get and return the physical address recorded in the page, and the offset into the page
     return extract_entry_address(address[0]) | (virtual_address & 0xfff);
 }
-
-
-// Allocate a group of pages
-
 
 
 void paging_map_page(uint64_t virtual_address, uint64_t physical_address, uint16_t flags) {
