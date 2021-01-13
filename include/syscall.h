@@ -23,4 +23,7 @@ uint64_t execute_syscall(uint64_t id, uint64_t arg0, uint64_t arg1, uint64_t arg
 uint64_t syscall_wrapper(uint64_t id, uint64_t arg0, uint64_t arg1, 
     __attribute__ ((unused)) uint64_t arg2, __attribute__ ((unused)) uint64_t arg3);
 
+uint64_t syscall_test(uint64_t arg0, uint64_t arg1, 
+    __attribute__ ((unused)) uint64_t arg2, __attribute__ ((unused)) uint64_t arg3);
+
 #endif 

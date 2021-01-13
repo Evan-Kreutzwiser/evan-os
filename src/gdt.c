@@ -26,6 +26,8 @@ typedef struct gdt_pointer_t {
 
 gdt_pointer_t gdt_ptr;
 
+uint8_t exeption_stack[4096]; // 1 KB of stack for exceptions
+
 typedef struct gdt_entry_t {
    uint16_t limit_low;           // The lower 16 bits of the limit.
    uint16_t base_low;            // The lower 16 bits of the base.
@@ -36,14 +38,13 @@ typedef struct gdt_entry_t {
 } __attribute__((packed)) gdt_entry_t;
 
 typedef struct gdt_tss_entry_t {
-	uint16_t limit_low;           // The lower 16 bits of the limit.
-	uint16_t base_low;            // The lower 16 bits of the base.
-	uint8_t  base_middle;         // The next 8 bits of the base.
-	uint8_t  access;              // Access flags, determine what ring this segment can be used in.
+	uint16_t limit_low;          // The lower 16 bits of the limit.
+	uint16_t base_low;           // The lower 16 bits of the base.
+	uint8_t  base_middle_low;    // The next 8 bits of the base.
+	uint8_t  access;             // Access flags, determine what ring this segment can be used in.
 	uint8_t  granularity;
-	uint8_t  base_high;           // The last 8 bits of the base.
-
-	uint32_t base_higher; 		 // The last/highest 32 bits of the base address
+	uint8_t  base_middle_high;   // 8 more bits of the base.
+	uint32_t base_high; 		 // The last/highest 32 bits of the base address
 	uint32_t zero; 		 // Set to all 0s	
 } __attribute__((packed)) gdt_tss_entry_t;
 
@@ -68,7 +69,7 @@ typedef struct tss_t {
 	uint32_t reserved4;
 
 	uint32_t iopb_offset;
-} __attribute__((packed)) tss_t;
+} __attribute__((packed)) __attribute__((aligned(4096))) tss_t;
 
 gdt_entry_t gdt[16];
 tss_t tss;
@@ -98,9 +99,11 @@ void gdt_set_tss(uint64_t index) {
 	gdt_tss_entry_t* tss_entry = (gdt_tss_entry_t*)&gdt[index];
 
 	tss_entry->base_low = (uint16_t)((uint64_t)&tss & 0xffff); // Low 16 bits of base
-	tss_entry->base_middle = (uint8_t)(((uint64_t)&tss & 0xff0000) >> 16); // Mid 8 bits of base
+	tss_entry->base_middle_low = (uint8_t)(((uint64_t)&tss & 0xff0000) >> 16); // Mid 8 bits of base
 	
-	tss_entry->base_higher = (uint32_t)((uint64_t)&tss >> 32);
+	tss_entry->base_middle_high = (uint8_t)((uint64_t)&tss >> 24);
+
+	tss_entry->base_high = (uint32_t)((uint64_t)&tss >> 32);
 	
 	tss_entry->limit_low = (uint16_t)(sizeof(tss_t) & 0xffff); // Low 16 bits of limit
 	tss_entry->granularity = (uint8_t)((sizeof(tss_t) & 0x0f0000) >> 16); // Mid 8 bits of limit
@@ -120,11 +123,15 @@ void gdt_init(void) {
 	
 	gdt_set_segment(1, 0, 0xffffffff, GDT_ACCESS_CODE_0, 0b0010); // Kernel code
 	gdt_set_segment(2, 0, 0xffffffff, GDT_ACCESS_DATA_0, 0b0000); // Kernel data
-	gdt_set_segment(3, 0, 0xffffffff, GDT_ACCESS_CODE_3, 0b0010); // User code
-	gdt_set_segment(4, 0, 0xffffffff, GDT_ACCESS_DATA_3, 0b0000); // User data
+	
+	// Due to how syscalls set selectors upon return, the user data segment must come before the code segment
+	gdt_set_segment(3, 0, 0xffffffff, GDT_ACCESS_DATA_3, 0b0000); // User data
+	gdt_set_segment(4, 0, 0xffffffff, GDT_ACCESS_CODE_3, 0b0010); // User code
 
 	// Set up a tss at index 5	
 	gdt_set_tss(5);
+
+	tss.rsp0 = (uint64_t)&exeption_stack[4096];
 
 	// Set up the pointer
 	gdt_ptr.base = (uint64_t)(uint64_t*)gdt;
@@ -146,7 +153,7 @@ void gdt_init(void) {
 	pushq $flush_end; \
 	iretq; \
 	flush_end: \
-	mov $0x28, %%rax; \
+	mov $0x2b, %%rax; \
 	ltr %%ax;\
 	" : : "m" (gdt_ptr));
 
