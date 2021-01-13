@@ -2,6 +2,7 @@
  * evan-os/src/memory/rangeallocator.c
  *
  * Manages the allocation of physical memory ranges, for use by the page allocator
+ * This file also contains the functions used to read the memory map and map the full RAM at an offset
  * 
  */
 
@@ -24,39 +25,40 @@ uint64_t identity_map_pd_tables[128][512] __attribute__((aligned(4096)));
 
 range_t memory_map[MMAP_ARRAY_SIZE]; // Space for range descriptors representing the memory map, and later the broken up segments allocated here
 
-// Indentity maps the entire RAM. Run before paging_init
+// Indentity maps the entire RAM
 void identity_map_memory(void) {
+
     // Get the current (firmware generated) page table 
-    uint64_t* pml4_table = (uint64_t*)cr3_read();
+    uint64_t* pml4_table = (uint64_t*)(cr3_read()+IDENTITY_MAP_OFFSET);
 
     // Get the phyiscal address of the new tables being made here
-    uint64_t* pd_tables = (uint64_t*)paging_get_physical_address((uint64_t)&identity_map_pd_tables);
-    uint64_t* pdp_table = (uint64_t*)paging_get_physical_address((uint64_t)&identity_map_pdp_table);
-    
-    // Get the index in the pml4 to map to
-    uint16_t pml4_index = (IDENTITY_MAP_OFFSET >> 39) & 0x1FF;
-
-    // Map the pdp table as a pml4 entry
-    pml4_table[pml4_index] = ((uint64_t)&pdp_table[0] & PAGE_ADDRESS_MASK) | 0b11;
+    uint64_t* pdp_table_physical_address = (uint64_t*)paging_get_physical_address((uint64_t)&identity_map_pdp_table[0]);
+    uint64_t* pd_tables_physical_address = (uint64_t*)paging_get_physical_address((uint64_t)&identity_map_pd_tables[0]);
 
     // Create the page directory pointer, which must contain entries for every page     
     for (uint16_t index = 0; index < 128; index++) { // Fill every entry
         // Map the page directory
-        paging_set_entry((uint64_t*)&pdp_table[index], (uint64_t)&pd_tables[index*5124],  0b000000011);
+        paging_set_entry((uint64_t*)&identity_map_pdp_table[index], (uint64_t)&pd_tables_physical_address[index*512], 0b000000011);
     }
-    
+
     // Fill the whole table with 2 MiB identity map entries
     uint64_t address = 0;
-    for (uint16_t tableNum = 0; tableNum < 128; tableNum++) { // For each table
+    for (uint16_t table_num = 0; table_num < 128; table_num++) { // For each table
         for (uint16_t index = 0; index < 512; index++) { // Fill every entry
             // Map the large page
-            paging_set_entry((uint64_t*)&pd_tables[(tableNum*512)+index], address,  0b10000011);
+            paging_set_entry((uint64_t*)(&identity_map_pd_tables[table_num][index]), address, 0b10000011);
             // Invalidate the tlb
-            invlpg((void *)(address + IDENTITY_MAP_OFFSET));
+            invlpg((void *)(address+IDENTITY_MAP_OFFSET));
             // Increase the address pointer
             address += 0x200000;
         }
     }
+
+    // Get the index in the pml4 to map too
+    uint16_t pml4_index = (IDENTITY_MAP_OFFSET >> 39) & 0x1FF;
+
+    // Map the pdp table as a pml4 entry
+    paging_set_entry(&pml4_table[pml4_index], (uint64_t)pdp_table_physical_address, 0b11);
 }
 
 void read_memory_map(void) {
@@ -105,7 +107,7 @@ void read_memory_map(void) {
 uint64_t allocate_range(uint64_t size) {
 
     // Round the size upwards to the nearest page
-    size += 0x1000 - (size & 0xfff); 
+    // size += 0x1000 - (size & 0xfff); 
 
     // Find the first unused range of the requested size
     for (uint64_t i = 0; i < MMAP_ARRAY_SIZE; i++) {

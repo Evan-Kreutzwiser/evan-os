@@ -29,14 +29,8 @@ typedef struct memory_block_t{
 
 void memory_allocation_init(void) {
 
-    // Get the heap's physical location
-    // Since this location is not yet mapped, use the mapped page before the heap to get the address
-    heap_physical_location = paging_get_physical_address((uint64_t)&heap_location - 4096) + 4096;
-
     // Create the heap now that the location is recorded
     memory_allocation_expand_heap(131072); // Allocate 128 4KB pages for the heap
-
-    paging_map_page((uint64_t)&heap_location, heap_physical_location, 0b01);
 
     // Make a block header marking the whole thing as free
     memory_block_t* first_block = (memory_block_t*)&heap_location;
@@ -49,19 +43,14 @@ void memory_allocation_expand_heap(size_t new_size) {
 
     // Remove the first 12 bits of the address. Only deal with complete pages
     new_size &= ~0xfff;
+    // Calculate how many new pages must be allocated
+    uint64_t pages = (new_size - heap_size) / 4096;
 
-    // The global heap_size variable was going to be used here, but gcc warned about the loop having no effect
-    // So its done like this to suppress the warning
-
-    // Allocate every new page of memory required, one by one
-    for (uint64_t i = heap_size; i < new_size; i+=4096, heap_size+=4096) {
-        // Allocate a new page
-        paging_map_page((uint64_t)&heap_location + i, heap_physical_location + i, 0b01);
-    }
+    // Allocate the new pages
+    paging_allocate_kernel_pages(&heap_location + heap_size, pages, 0b011);
 
     // Update the pointer to the end of the heap
     heap_end = (void*)(&heap_location + heap_size);
-
 }
 
 // Allocate a chunk of memory in the requested size
