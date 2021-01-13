@@ -12,6 +12,8 @@
 #include <asm.h>
 #include <kernel.h>
 
+#include <memory/paging.h>
+
 #include <stdint.h>
 
 
@@ -62,12 +64,16 @@ void syscall_init(void) {
 	// TODO: Add interrupt setting syscalls
 	// TODO: Add file system syscalls
 
+	syscall_table[2] = (syscall_t)(uint64_t)&syscall_test;
+
 	// Set the syscall bit
     wrmsr(0xC0000080, rdmsr_low(0xC0000080) | 1, rdmsr_high(0xC0000080));
 
 	// Set the segments that syscall will set
 	// Set STAR to the segment selectors
-	wrmsr(0xC0000081, 0x0, 0x8);
+	wrmsr(0xC0000081, 0x0, 0x00130008);
+	// Upon SYSRET, the code segment will be set to the highest 16 bits of the STAR MSR (0x000b) + 16
+	// And the Stack segment will be set to that value + 8 
 	
 	// Set the LSTAR MSR to the 64 bit syscall entry point
 	wrmsr(0xC0000082, (uint32_t)((uint64_t)&syscall_and_return & 0xffffffff), (uint32_t)((uint64_t)&syscall_and_return >> 32) );
@@ -101,8 +107,8 @@ uint64_t syscall_unregister(uint64_t id, __attribute__ ((unused)) uint64_t arg1,
 }
 
 
-
-uint64_t syscall_wrapper(uint64_t id, uint64_t arg0, uint64_t arg1, 
+// Wrapper to call a system call with the given arguments, without requiring the program to use the specific asembly routine
+inline uint64_t syscall_wrapper(uint64_t id, uint64_t arg0, uint64_t arg1, 
 	__attribute__ ((unused)) uint64_t arg2, __attribute__ ((unused)) uint64_t arg3) {
 
 	uint64_t return_value;
@@ -113,4 +119,15 @@ uint64_t syscall_wrapper(uint64_t id, uint64_t arg0, uint64_t arg1,
 					: "=m" (return_value) : "m" (id), "m" (arg0), "m" (arg1) : "rbx", "rdx", "r8");
 
 	return return_value;
+}
+
+// This is a test system call that uses the kernel's tty functions to print the userspace test's stack segment
+uint64_t syscall_test(uint64_t arg0, __attribute__ ((unused)) uint64_t arg1, __attribute__ ((unused)) uint64_t arg2, __attribute__ ((unused)) uint64_t arg3) { 
+
+	tty_print_string("\nUser code performed a syscall to print its segment selector: ");
+	print_hex(arg0);
+	tty_print_string("\nIt will now manually trigger a #UD exception.\n");
+
+	// Return nothing to the code which called this
+	return 0;
 }
