@@ -16,6 +16,7 @@
 #include <memory/paging.h>
 #include <memory/memory.h>
 #include <memory/rangeallocator.h>
+#include <process.h>
 
 // Std headers
 #include <stdint.h>
@@ -113,15 +114,15 @@ void kernel(void) {
     tty_print_string("Adding exception handlers\n");
 
     // Set up the double fault handler (The most important one)
-    interrupt_set_gate(0x8, (uint64_t)&double_fault, INTERRUPT_PRESENT | INTERRUPT_INTERRUPT_GATE);
+    interrupt_set_gate(0x8, (uint64_t)&double_fault, INTERRUPT_PRESENT | INTERRUPT_TRAP_GATE);
     // Set up the general protection fault handler
-    interrupt_set_gate(0xd, (uint64_t)&gp_fault, INTERRUPT_PRESENT | INTERRUPT_INTERRUPT_GATE);
+    interrupt_set_gate(0xd, (uint64_t)&gp_fault, INTERRUPT_PRESENT | INTERRUPT_TRAP_GATE);
     // Set up the page fault handler
-    interrupt_set_gate(0xe, (uint64_t)&page_fault, INTERRUPT_PRESENT | INTERRUPT_INTERRUPT_GATE);
+    interrupt_set_gate(0xe, (uint64_t)&page_fault, INTERRUPT_PRESENT | INTERRUPT_TRAP_GATE);
     // Set up the div by 0 fault handler
-    interrupt_set_gate(0x0, (uint64_t)&div_0_fault, INTERRUPT_PRESENT | INTERRUPT_INTERRUPT_GATE);
+    interrupt_set_gate(0x0, (uint64_t)&div_0_fault, INTERRUPT_PRESENT | INTERRUPT_TRAP_GATE);
     // Set up the invalid instruction fault handler
-    interrupt_set_gate(0x6, (uint64_t)&invalid_opcode_fault, INTERRUPT_PRESENT | INTERRUPT_INTERRUPT_GATE);
+    interrupt_set_gate(0x6, (uint64_t)&invalid_opcode_fault, INTERRUPT_PRESENT | INTERRUPT_TRAP_GATE);
 
     // Load drivers from disk as needed
     tty_print_string("Loading drivers\n");
@@ -146,11 +147,6 @@ void kernel(void) {
     // Switch paging to malloc mode
     //paging_enable_memory_allocation();
 
-    // Create and load a blank test address space
-    void * address_space_pointer = paging_create_address_space(); // Create the address space's pml4
-    address_space_pointer = (void*)paging_get_physical_address((uint64_t)address_space_pointer); // Get its phyiscal address
-    paging_load_address_space(address_space_pointer); // Load the new pml4
-
     // Test memory allocation
 
     // Allocate 2 chunks of memory
@@ -172,6 +168,28 @@ void kernel(void) {
     // Free the pointers to reuse the memory
     kfree(pointer);
     kfree(pointer3);
+
+    // Create a new process control block and give it a new address space
+    process_control_block_t pcb;
+    pcb.address_space_pml4 = paging_create_address_space();
+
+    // Map the user code to the begining of the process's virtual address space 
+    uint64_t address = paging_get_physical_address((uint64_t)&user_code & ~0xfff);
+    paging_map_page(0x0, address, 0b101, pcb.address_space_pml4);
+    paging_map_page(0x1000, address+0x1000, 0b101, pcb.address_space_pml4);
+
+    // Create a stack for the process
+    paging_allocate_user_pages((uint64_t*)0x4000, 16, 0b111, pcb.address_space_pml4); // Allocate of user-accessible memory for a stack
+
+    // Set the process's register values
+    pcb.rax = 0xdeadbeef;
+    pcb.rbx = 0x1234acbd;
+    pcb.rcx = 0x00000000;
+    pcb.rdx = 0x10101010;
+    pcb.rip = (uint64_t)&user_code & 0xfff;
+    pcb.rsp = 0x4F00; // Set the stack pointer to the allocated user stack
+
+    process_enter(pcb);
 
     // Stop the computer
     // The OS should run tasks instead of this
@@ -284,7 +302,9 @@ void page_fault(struct interrupt_frame *frame, uint64_t error_code) {
     print_hex(frame->ip);
     tty_print_string("\nCode Segment: ");
     print_hex(frame->cs);
-    tty_print_char('\n');
+    tty_print_string("\nStack Trace:\n");
+
+
 }
 
 __attribute__ ((interrupt))
