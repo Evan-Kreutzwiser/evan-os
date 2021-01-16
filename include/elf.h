@@ -58,6 +58,19 @@ typedef struct elf_program_header_t {
 
 typedef struct elf_section_header_t {
 
+    uint32_t name_offset;    // The name string's offset in the section name section
+    uint32_t type;           // The section's type
+    uint64_t flags;          // Flags about the sections contents and behavior
+    uint64_t base_address;   // This section's address in memory
+    uint64_t offset_in_file; // The section's location in the file
+    uint64_t size_in_file;   // The size of the section
+
+    uint32_t link_index; // The index of an accociated section
+    uint32_t extra_info; // Extra type-dependant section information
+
+    uint64_t alignment;  // A power of 2 representing the segment's memory alignment. 0 or 1 Indicates no requested alignment.
+    uint64_t entry_size; // The size of each entry, for sections with fixed-size entries. Will otherwise be 0.
+
 } __attribute__((packed)) elf_section_header_t;
 
 
