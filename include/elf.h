@@ -12,6 +12,7 @@
 
 #define ELF_ARCHITECTURE_X86_64 0x3e
 
+// The header at the begining of every ELF file containing platform information and pointers to / the size of segment tables
 typedef struct elf_header_t {
 
     char     magic_number[4]; // Must contain 0x7f and 'ELF' in ASCII
@@ -39,6 +40,21 @@ typedef struct elf_header_t {
     uint16_t section_names_index;       // The index of the section containing the section names
 
 } __attribute__((packed)) elf_header_t;
+
+// The layout of entries in ELF file's program headers table. Describes how the system should set up memory for the process
+typedef struct elf_program_header_t {
+
+    uint32_t type;  // The segment's type
+    uint32_t flags; // Segment type dependant flags
+
+    uint64_t offset_in_file;   // The segments location in the file
+    uint64_t virtual_address;  // Where the segment should be in the virtual address space
+    uint64_t physcial_address; // Unused by this OS. On platforms where it matters, this is the physical location in memory 
+    uint64_t size_in_file;     // How large the segment is in the file
+    uint64_t size_in_memory;   // Size of the segment in memory
+    uint64_t alignment;        // A power of 2 representing the segment's memory alignment. 0 or 1 Indicates no requested alignment.
+
+} __attribute__((packed)) elf_program_header_t;
 
 typedef struct elf_section_header_t {
 
