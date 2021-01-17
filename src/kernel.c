@@ -17,6 +17,7 @@
 #include <memory/memory.h>
 #include <memory/rangeallocator.h>
 #include <process.h>
+#include <elf.h>
 
 // Std headers
 #include <stdint.h>
@@ -63,7 +64,7 @@ void kernel(void) {
     volatile uint32_t* framebuffer = (uint32_t*)&fb;
 
     // Get the pointer to the ramdisk
-    volatile void * initrd = (void *)bootboot.initrd_ptr;
+    void * initrd = (void *)bootboot.initrd_ptr;
 
     // Disable interrupts
     cli();
@@ -133,6 +134,14 @@ void kernel(void) {
     tty_print_string((char*)&file->filename[0]);
     tty_print_string("]\nFile Size: ");
     print_hex(octal_string_to_int(file->size, 11));
+
+    // Check if the file is an ELF file    
+    uint8_t is_elf = elf_check_signature((elf_header_t*)&((char*)initrd)[512]);
+
+    if (is_elf == 1) {
+        tty_print_string("\nKernel is valid ELF file");
+    }
+
     tty_print_string("\nSetting up syscalls\n");
 
     // Set up system calls

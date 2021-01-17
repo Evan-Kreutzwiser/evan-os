@@ -58,6 +58,7 @@ uint8_t module_call_function(char* function_name);
 
 uint8_t module_send_value(char* module, uint64_t value);
 
-uint8_t module_load(driver_info_t* driver);
+// Load a driver from a pointer to the loaded file's location in memory
+uint8_t module_load(void* file_address, uint32_t size);
 
 #endif // MODULE_H

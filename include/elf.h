@@ -12,6 +12,9 @@
 
 #define ELF_ARCHITECTURE_X86_64 0x3e
 
+// ELF loading error values
+#define ELF_ERROR_PLATFORM 0x2
+
 // The header at the begining of every ELF file containing platform information and pointers to / the size of segment tables
 typedef struct elf_header_t {
 
@@ -76,6 +79,8 @@ typedef struct elf_section_header_t {
 
 // Checks if a file in loaded in memory has the 4 byte signature of an ELF file
 // A return value of 1 indicates that the file is an elf file
-uint8_t elf_check_signature(void* file_start);
+uint8_t elf_check_signature(elf_header_t* file_header);
+
+uint8_t elf_check_platform_info(elf_header_t* file_header);
 
 #endif // ELF_H
