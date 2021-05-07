@@ -1,6 +1,8 @@
 # evan-os
 Evan OS is my custom operating system project writen in c for x86_64 uefi systems.
 
+### This project has been put on hold due to code disorganization. A new, better planned out version is currently in development.
+
 ![Build: Master](https://img.shields.io/github/workflow/status/Evan-Kreutzwiser/evan-os/Compile/master?label=Build%3A%20Master&style=flat-square)
 ![Build: Development](https://img.shields.io/github/workflow/status/Evan-Kreutzwiser/evan-os/Compile/development?label=Build%3A%20Development&style=flat-square)
 ![Open issues](https://img.shields.io/github/issues/Evan-Kreutzwiser/evan-os?label=Issues&style=flat-square)
